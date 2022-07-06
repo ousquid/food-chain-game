@@ -13,8 +13,8 @@ fn main() {
     App::new()
         .insert_resource(WindowDescriptor {
             title: "food chain game".to_string(),
-            width: 500.,
-            height: 500.,
+            width: SCREEN_WIDTH as f32,
+            height: SCREEN_HEIGHT as f32,
             ..Default::default()
         })
         .add_plugins(DefaultPlugins)
