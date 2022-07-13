@@ -27,6 +27,9 @@ struct Player;
 #[derive(Component)]
 struct Field;
 
+#[derive(Component)]
+struct ColorText;
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 1.0)))
@@ -49,14 +52,19 @@ fn main() {
         .run();
 }
 
-fn setup_system(mut commands: Commands) {
+fn setup_system(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>
+) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+    commands.spawn_bundle(UiCameraBundle::default());
     for i in 0..FIELD_WIDTH as i32 {
         for j in 0..FIELD_HEIGHT as i32 {
             spawn_field(&mut commands, Position { x: i+FIELD_LEFTBTM_X, y: j+FIELD_LEFTBTM_Y});
         }
     }
-    spawn_player(&mut commands, Position { x: 4, y: 6 })
+    spawn_player(&mut commands, Position { x: 4, y: 6 });
+    spawn_text(&mut commands, Position {x: 10, y: 10}, asset_server);
 }
 
 fn game_timer(
@@ -72,13 +80,31 @@ fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
     position_query
         .iter_mut()
         .for_each(|(pos, mut transform)| {
-            println!("{:?}", pos);
             transform.translation = Vec3::new(
                 (origin_x + pos.x as i32 * UNIT_WIDTH as i32) as f32,
                 (origin_y + pos.y as i32 * UNIT_HEIGHT as i32) as f32,
                 0.0,
             );
         });
+}
+
+fn spawn_text(
+    commands: &mut Commands,
+    position: Position,
+    asset_server: Res<AssetServer>
+) {
+    commands.spawn_bundle(TextBundle {
+        text: Text::with_section(
+            "Congratulations!",
+            TextStyle {
+                font_size: 60.0,
+                color: Color::WHITE,
+                font: asset_server.load("fonts/FiraSans-Bold.ttf")
+            },
+            Default::default()
+        ),
+        ..Default::default()
+    });
 }
 
 fn spawn_field(
@@ -128,7 +154,7 @@ fn move_player(
     if !timer.0.finished() {
         return;
     }
-    
+ 
     let mut x = 0;
     let mut y = 0;
     if key_input.pressed(KeyCode::Left) {
