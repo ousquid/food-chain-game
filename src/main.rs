@@ -5,8 +5,8 @@ use bevy_prototype_lyon::prelude::*;
 const UNIT_WIDTH: u32 = 20;
 const UNIT_HEIGHT: u32 = 20;
 
-const FIELD_CENTER_X: i32 = 8;
-const FIELD_CENTER_Y: i32 = 18;
+const FIELD_LEFTBTM_X: i32 = 1;
+const FIELD_LEFTBTM_Y: i32 = 6;
 const FIELD_WIDTH: u32 = 16;
 const FIELD_HEIGHT: u32 = 28;
 
@@ -23,6 +23,9 @@ struct InputTimer(Timer);
 
 #[derive(Component)]
 struct Player;
+
+#[derive(Component)]
+struct Field;
 
 fn main() {
     App::new()
@@ -48,7 +51,11 @@ fn main() {
 
 fn setup_system(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-    spawn_field(&mut commands, Position { x: FIELD_CENTER_X, y: FIELD_CENTER_Y });
+    for i in 0..FIELD_WIDTH as i32 {
+        for j in 0..FIELD_HEIGHT as i32 {
+            spawn_field(&mut commands, Position { x: i+FIELD_LEFTBTM_X, y: j+FIELD_LEFTBTM_Y});
+        }
+    }
     spawn_player(&mut commands, Position { x: 4, y: 6 })
 }
 
@@ -79,7 +86,7 @@ fn spawn_field(
     position: Position,
 ) {
     let shape = shapes::Rectangle {
-        extents: Vec2::new((FIELD_WIDTH * UNIT_WIDTH) as f32, (FIELD_HEIGHT * UNIT_HEIGHT) as f32),
+        extents: Vec2::new(UNIT_WIDTH as f32, UNIT_HEIGHT as f32),
         ..shapes::Rectangle::default()
     };
 
@@ -90,7 +97,7 @@ fn spawn_field(
             outline_mode: StrokeMode::new(Color::BLACK, 0.0),
         },
         Transform::default(),
-    )).insert(position);
+    )).insert(position).insert(Field);
 }
 
 fn spawn_player(
@@ -115,7 +122,8 @@ fn spawn_player(
 fn move_player(
     key_input: Res<Input<KeyCode>>,
     timer: ResMut<InputTimer>,
-    mut position_query: Query<(Entity, &mut Position, &Player)>
+    mut player_query: Query<(Entity, &mut Position, &Player), Without<Field>>,
+    field_query: Query<(Entity, &Position, &Field), Without<Player>>,
 ) {
     if !timer.0.finished() {
         return;
@@ -136,9 +144,10 @@ fn move_player(
         y -= 1;   
     }
 
-    position_query.iter_mut().for_each(|(_, mut pos, _)| {
-        pos.x += x;
-        pos.y += y;
+    player_query.iter_mut().for_each(|(_, mut pos_player, _)| {
+        if field_query.iter().any(|(_, pos_field, _)| pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y) {
+            pos_player.x += x;
+            pos_player.y += y;        
+        }
     })
-
 }
