@@ -5,14 +5,13 @@ use bevy_prototype_lyon::prelude::*;
 const UNIT_WIDTH: u32 = 20;
 const UNIT_HEIGHT: u32 = 20;
 
-const X_LENGTH: u32 = 24;
-const Y_LENGTH: u32 = 36;
+const FIELD_CENTER_X: i32 = 8;
+const FIELD_CENTER_Y: i32 = 18;
+const FIELD_WIDTH: u32 = 16;
+const FIELD_HEIGHT: u32 = 28;
 
-const FIELD_WIDTH: u32 = UNIT_WIDTH * 16;
-const FIELD_HEIGHT: u32 = UNIT_HEIGHT * 28;
-
-const SCREEN_WIDTH: u32 = UNIT_WIDTH * X_LENGTH;
-const SCREEN_HEIGHT: u32 = UNIT_HEIGHT * Y_LENGTH;
+const SCREEN_WIDTH: u32 = 24;
+const SCREEN_HEIGHT: u32 = 36;
 
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 struct Position {
@@ -30,8 +29,8 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 1.0)))
         .insert_resource(WindowDescriptor {
             title: "FoodChainGame".to_string(),
-            width: SCREEN_WIDTH as f32,
-            height: SCREEN_HEIGHT as f32,
+            width: (SCREEN_WIDTH * UNIT_WIDTH) as f32,
+            height: (SCREEN_HEIGHT * UNIT_HEIGHT) as f32,
             ..Default::default()
         })
         .insert_resource(InputTimer(Timer::new(
@@ -49,7 +48,7 @@ fn main() {
 
 fn setup_system(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-    spawn_field(&mut commands, Position { x: 8, y: 18 });
+    spawn_field(&mut commands, Position { x: FIELD_CENTER_X, y: FIELD_CENTER_Y });
     spawn_player(&mut commands, Position { x: 4, y: 6 })
 }
 
@@ -61,8 +60,8 @@ fn game_timer(
 }
 
 fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
-    let origin_x = UNIT_WIDTH as i32 / 2 - SCREEN_WIDTH as i32 / 2;
-    let origin_y = UNIT_HEIGHT as i32 / 2 - SCREEN_HEIGHT as i32 / 2;
+    let origin_x = UNIT_WIDTH as i32 / 2 - (SCREEN_WIDTH as i32 * UNIT_WIDTH as i32) / 2;
+    let origin_y = UNIT_HEIGHT as i32 / 2 - (SCREEN_HEIGHT as i32 * UNIT_HEIGHT as i32) / 2;
     position_query
         .iter_mut()
         .for_each(|(pos, mut transform)| {
@@ -80,7 +79,7 @@ fn spawn_field(
     position: Position,
 ) {
     let shape = shapes::Rectangle {
-        extents: Vec2::new(FIELD_WIDTH as f32, FIELD_HEIGHT as f32),
+        extents: Vec2::new((FIELD_WIDTH * UNIT_WIDTH) as f32, (FIELD_HEIGHT * UNIT_HEIGHT) as f32),
         ..shapes::Rectangle::default()
     };
 
