@@ -26,12 +26,23 @@ struct Player;
 
 #[derive(Component)]
 struct Field;
+#[derive(Component)]
+struct Terminal;
+
 
 #[derive(Component)]
 struct ColorText;
 
 #[derive(Component)]
-struct State;
+struct State {
+    kind: StateKind,
+}
+
+enum StateKind {
+    GameOver,
+    GameClear,
+    Playing
+}
 
 
 fn main() {
@@ -54,6 +65,7 @@ fn main() {
         .add_system(position_transform)
         .add_system(text_value)
         .add_system(game_timer)
+        .add_system(goal)
         .run();
 }
 
@@ -68,8 +80,11 @@ fn setup_system(
             spawn_field(&mut commands, Position { x: i+FIELD_LEFTBTM_X, y: j+FIELD_LEFTBTM_Y});
         }
     }
+    spawn_terminal(&mut commands, Position { 
+        x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1, 
+        y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1});
     spawn_player(&mut commands, Position { x: 4, y: 6 });
-    spawn_text(&mut commands, Position {x: 10, y: 10}, State, asset_server);
+    spawn_text(&mut commands, Position {x: 10, y: 10}, StateKind::Playing, asset_server);
 }
 
 fn game_timer(
@@ -95,14 +110,18 @@ fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
 
 fn text_value(mut state_query: Query<(&State, &mut Text)>) {
     state_query.iter_mut().for_each(|(state, mut text)|{
-        text.sections[0].value = "ok!".to_string();
-    }) 
+        text.sections[0].value = match state.kind {
+            StateKind::GameOver => "GameOver!!!!".to_string(),
+            StateKind::GameClear => "GameClear!".to_string(),
+            StateKind::Playing => "Playing!".to_string(),
+        }
+    });
 }
 
 fn spawn_text(
     commands: &mut Commands,
     position: Position,
-    state: State,
+    state_kind: StateKind,
     asset_server: Res<AssetServer>
 ) {
     commands.spawn_bundle(TextBundle {
@@ -116,7 +135,7 @@ fn spawn_text(
             Default::default()
         ),
         ..Default::default()
-    }).insert(state);
+    }).insert(State{kind:state_kind});
 }
 
 fn spawn_field(
@@ -136,6 +155,25 @@ fn spawn_field(
         },
         Transform::default(),
     )).insert(position).insert(Field);
+}
+
+fn spawn_terminal(
+    commands: &mut Commands,
+    position: Position,
+) {
+    let shape = shapes::Rectangle {
+        extents: Vec2::new(UNIT_WIDTH as f32, UNIT_HEIGHT as f32),
+        ..shapes::Rectangle::default()
+    };
+
+    commands.spawn_bundle(GeometryBuilder::build_as(
+        &shape,
+        DrawMode::Outlined {
+            fill_mode: FillMode::color(Color::GRAY),
+            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+        },
+        Transform::default(),
+    )).insert(position).insert(Terminal);
 }
 
 fn spawn_player(
@@ -160,8 +198,8 @@ fn spawn_player(
 fn move_player(
     key_input: Res<Input<KeyCode>>,
     timer: ResMut<InputTimer>,
-    mut player_query: Query<(Entity, &mut Position, &Player), Without<Field>>,
-    field_query: Query<(Entity, &Position, &Field), Without<Player>>,
+    field_query: Query<&Position, With<Field>>,
+    mut player_query: Query<&mut Position, (With<Player>, Without<Field>)>,
 ) {
     if !timer.0.finished() {
         return;
@@ -182,8 +220,8 @@ fn move_player(
         y -= 1;   
     }
 
-    player_query.iter_mut().for_each(|(_, mut pos_player, _)| {
-        if field_query.iter().any(|(_, pos_field, _)| pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y) {
+    player_query.iter_mut().for_each(|mut pos_player| {
+        if field_query.iter().any(|pos_field| pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y) {
             pos_player.x += x;
             pos_player.y += y;        
         }
@@ -191,7 +229,16 @@ fn move_player(
 }
 
 fn goal(
-    player_query: Query<(Entity, &mut Position, &Player), Without<Field>>,
+    player_query: Query<&Position, With<Player>>,
+    terminal_query: Query<&Position, With<Terminal>>,
+    mut state_query: Query<&mut State>,
 ) {
+    player_query.iter().for_each(|pos_player| {
+        if terminal_query.iter().any(|pos_field| pos_player.x == pos_field.x && pos_player.y == pos_field.y) {
+            state_query.iter_mut().for_each(|mut state| {
+                state.kind = StateKind::GameClear;
+            });
+        }
+    })
 
 }
