@@ -30,6 +30,10 @@ struct Field;
 #[derive(Component)]
 struct ColorText;
 
+#[derive(Component)]
+struct State;
+
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 1.0)))
@@ -48,6 +52,7 @@ fn main() {
         .add_startup_system(setup_system)
         .add_system(move_player)
         .add_system(position_transform)
+        .add_system(text_value)
         .add_system(game_timer)
         .run();
 }
@@ -64,7 +69,7 @@ fn setup_system(
         }
     }
     spawn_player(&mut commands, Position { x: 4, y: 6 });
-    spawn_text(&mut commands, Position {x: 10, y: 10}, asset_server);
+    spawn_text(&mut commands, Position {x: 10, y: 10}, State, asset_server);
 }
 
 fn game_timer(
@@ -88,14 +93,21 @@ fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
         });
 }
 
+fn text_value(mut state_query: Query<(&State, &mut Text)>) {
+    state_query.iter_mut().for_each(|(state, mut text)|{
+        text.sections[0].value = "ok!".to_string();
+    }) 
+}
+
 fn spawn_text(
     commands: &mut Commands,
     position: Position,
+    state: State,
     asset_server: Res<AssetServer>
 ) {
     commands.spawn_bundle(TextBundle {
         text: Text::with_section(
-            "Congratulations!",
+            "unknown!",
             TextStyle {
                 font_size: 60.0,
                 color: Color::WHITE,
@@ -104,7 +116,7 @@ fn spawn_text(
             Default::default()
         ),
         ..Default::default()
-    });
+    }).insert(state);
 }
 
 fn spawn_field(
@@ -176,4 +188,10 @@ fn move_player(
             pos_player.y += y;        
         }
     })
+}
+
+fn goal(
+    player_query: Query<(Entity, &mut Position, &Player), Without<Field>>,
+) {
+
 }
