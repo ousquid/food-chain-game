@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use rand::prelude::*;
 // https://docs.rs/bevy_prototype_lyon/latest/bevy_prototype_lyon/
 use bevy_prototype_lyon::prelude::*;
 
@@ -13,16 +14,33 @@ const FIELD_HEIGHT: u32 = 28;
 const SCREEN_WIDTH: u32 = 24;
 const SCREEN_HEIGHT: u32 = 36;
 
+const MOVE_SPEED_PLAYER: u32 = 10;
+const MOVE_SPEED_BEAR: u32 = 8;
+const MOVE_SPEED_FOX: u32 = 5;
+const MOVE_SPEED_WALNUT: u32 = 0;
+
+const MAX_HP_PLAYER: i32 = 100;
+const MAX_HP_BEAR: i32 = 500;
+const MAX_HP_FOX: i32 = 30;
+const MAX_HP_WALNUT: i32 = 1;
+
+
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 struct Position {
     x: i32,
     y: i32,
 }
-
-struct InputTimer(Timer);
+struct GameTimer(Timer);
 
 #[derive(Component)]
 struct Player;
+#[derive(Component)]
+struct Bear;
+#[derive(Component)]
+struct Fox;
+
+#[derive(Component)]
+struct Walnut;
 
 #[derive(Component)]
 struct Field;
@@ -31,11 +49,20 @@ struct Terminal;
 
 
 #[derive(Component)]
-struct ColorText;
+struct HpText;
 
 #[derive(Component)]
 struct State {
     kind: StateKind,
+}
+#[derive(Component)]
+struct Counter {
+    val: i32,
+}
+#[derive(Component)]
+struct HP {
+    val: i32,
+    max: i32,
 }
 
 enum StateKind {
@@ -44,6 +71,12 @@ enum StateKind {
     Playing
 }
 
+fn get_random_position() -> Position {
+    let mut rng = rand::thread_rng();
+    let x = rng.gen_range(FIELD_LEFTBTM_X .. FIELD_LEFTBTM_X as i32 + FIELD_WIDTH as i32);
+    let y = rng.gen_range(FIELD_LEFTBTM_Y .. FIELD_LEFTBTM_Y as i32 + FIELD_HEIGHT as i32);
+    Position {x, y}
+}
 
 fn main() {
     App::new()
@@ -54,7 +87,7 @@ fn main() {
             height: (SCREEN_HEIGHT * UNIT_HEIGHT) as f32,
             ..Default::default()
         })
-        .insert_resource(InputTimer(Timer::new(
+        .insert_resource(GameTimer(Timer::new(
             std::time::Duration::from_millis(100),
             true,
         )))
@@ -62,10 +95,12 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_startup_system(setup_system)
         .add_system(move_player)
-        .add_system(position_transform)
         .add_system(text_value)
         .add_system(game_timer)
         .add_system(goal)
+        .add_system(despawn_hp_text)
+        .add_system(spawn_all_hp_text)
+        .add_system(position_transform)
         .run();
 }
 
@@ -83,15 +118,18 @@ fn setup_system(
     spawn_terminal(&mut commands, Position { 
         x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1, 
         y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1});
-    spawn_player(&mut commands, Position { x: 4, y: 6 });
-    spawn_text(&mut commands, Position {x: 10, y: 10}, StateKind::Playing, asset_server);
+    spawn_player(&mut commands, Position { x: 4, y: 6 }, &asset_server);
+    spawn_bear(&mut commands, get_random_position(), &asset_server);
+    spawn_fox(&mut commands, get_random_position(), &asset_server);
+    spawn_walnut(&mut commands, get_random_position(), &asset_server);
+    spawn_text(&mut commands, Position {x: 10, y: 10}, StateKind::Playing, &asset_server);
 }
 
 fn game_timer(
     time: Res<Time>,
-    mut imput_timer: ResMut<InputTimer>,
+    mut timer: ResMut<GameTimer>,
 ) {
-    imput_timer.0.tick(time.delta());
+    timer.0.tick(time.delta());
 }
 
 fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
@@ -122,7 +160,7 @@ fn spawn_text(
     commands: &mut Commands,
     position: Position,
     state_kind: StateKind,
-    asset_server: Res<AssetServer>
+    asset_server: &Res<AssetServer>
 ) {
     commands.spawn_bundle(TextBundle {
         text: Text::with_section(
@@ -178,7 +216,8 @@ fn spawn_terminal(
 
 fn spawn_player(
     commands: &mut Commands,
-    position: Position
+    position: Position,
+    asset_server: &Res<AssetServer>
 ) {
     let shape = shapes::Circle {
         radius: (UNIT_WIDTH / 2) as f32,
@@ -192,12 +231,102 @@ fn spawn_player(
             outline_mode: StrokeMode::new(Color::BLACK, 0.0),
         },
         Transform::default(),
-    )).insert(position).insert(Player);
+    )).with_children(|parent| {
+        /*
+        parent.spawn_bundle(TextBundle {
+            text: Text::with_section(
+                "fugafuga!",
+                TextStyle {
+                    font_size: 10.0,
+                    color: Color::WHITE,
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf")
+                },
+                Default::default()
+            ),
+            ..Default::default()
+        });
+        */
+        parent.spawn_bundle(
+            GeometryBuilder::build_as(
+                &shape,
+                DrawMode::Outlined {
+                    fill_mode: FillMode::color(Color::AZURE),
+                    outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+                },
+                Transform::from_translation(Vec3::new(
+                    UNIT_WIDTH as f32,
+                    UNIT_HEIGHT as f32,
+                    0.0
+                ))
+            )
+        );
+    })
+    .insert(Player).insert(position).insert(HP {max: MAX_HP_PLAYER, val: MAX_HP_PLAYER});
+}
+
+fn spawn_bear(
+    commands: &mut Commands,
+    position: Position,
+    asset_server: &Res<AssetServer>
+) {
+    let shape = shapes::Circle {
+        radius: (UNIT_WIDTH / 2) as f32,
+        center: Vec2::new(0.0, 0.0),
+    };
+
+    commands.spawn_bundle(GeometryBuilder::build_as(
+        &shape,
+        DrawMode::Outlined {
+            fill_mode: FillMode::color(Color::rgb_u8(148, 115, 91)),
+            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+        },
+        Transform::default(),
+    )).insert(Bear).insert(position).insert(HP {max: MAX_HP_BEAR, val: MAX_HP_BEAR});
+}
+
+fn spawn_fox(
+    commands: &mut Commands,
+    position: Position,
+    asset_server: &Res<AssetServer>
+) {
+    let shape = shapes::Circle {
+        radius: (UNIT_WIDTH / 2) as f32,
+        center: Vec2::new(0.0, 0.0),
+    };
+
+    commands.spawn_bundle(GeometryBuilder::build_as(
+        &shape,
+        DrawMode::Outlined {
+            fill_mode: FillMode::color(Color::ORANGE),
+            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+        },
+        Transform::default(),
+    )).insert(Fox).insert(position).insert(HP {max: MAX_HP_FOX, val: MAX_HP_FOX});
+}
+
+fn spawn_walnut(
+    commands: &mut Commands,
+    position: Position,
+    asset_server: &Res<AssetServer>
+) {
+    let shape = shapes::Circle {
+        radius: (UNIT_WIDTH / 2) as f32,
+        center: Vec2::new(0.0, 0.0),
+    };
+
+    commands.spawn_bundle(GeometryBuilder::build_as(
+        &shape,
+        DrawMode::Outlined {
+            fill_mode: FillMode::color(Color::YELLOW),
+            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+        },
+        Transform::default(),
+    )).insert(position).insert(Walnut).insert(HP {max: MAX_HP_WALNUT, val: MAX_HP_WALNUT});
 }
 
 fn move_player(
     key_input: Res<Input<KeyCode>>,
-    timer: ResMut<InputTimer>,
+    timer: ResMut<GameTimer>,
     field_query: Query<&Position, With<Field>>,
     mut player_query: Query<&mut Position, (With<Player>, Without<Field>)>,
 ) {
@@ -241,4 +370,57 @@ fn goal(
         }
     })
 
+}
+
+fn despawn_hp_text(
+    mut commands: Commands,
+    text_query: Query<Entity, With<HpText>>
+) {
+  text_query.iter().for_each(|text| {
+    commands.entity(text).despawn();
+  }) 
+}
+
+fn spawn_all_hp_text(
+    mut commands: Commands,
+    character_query: Query<(&Position, &HP)>,
+    asset_server: Res<AssetServer>
+) {
+    character_query.iter().for_each(|(pos_character, hp_character)| {
+        spawn_hp_text(&mut commands, pos_character, hp_character, &asset_server);
+    })
+}
+
+fn spawn_hp_text(
+    commands: &mut Commands,
+    position: &Position,
+    hp: &HP,
+    asset_server: &Res<AssetServer>
+) {
+    let text = Text::with_section(
+        format!("{}", hp.val),
+        TextStyle {
+            font_size: 10.0,
+            color: Color::BLACK,
+            font: asset_server.load("fonts/FiraSans-Bold.ttf")
+        },
+        Default::default()
+    );
+
+    let origin_x = UNIT_WIDTH as i32 / 2;
+    let origin_y = UNIT_HEIGHT as i32 / 2;
+    
+    commands.spawn_bundle(TextBundle {
+        text: text,
+        style: Style {
+            position_type: PositionType::Absolute,
+            position: Rect {
+                left: Val::Px((origin_x + position.x * UNIT_WIDTH as i32) as f32),
+                bottom: Val::Px((origin_y + position.y * UNIT_HEIGHT as i32) as f32),
+                ..default()
+            },
+            ..default()
+        },
+        ..Default::default()
+    }).insert(HpText);
 }
