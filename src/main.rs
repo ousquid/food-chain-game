@@ -24,7 +24,6 @@ const MAX_HP_BEAR: i32 = 500;
 const MAX_HP_FOX: i32 = 30;
 const MAX_HP_WALNUT: i32 = 1;
 
-
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 struct Position {
     x: i32,
@@ -47,7 +46,6 @@ struct Field;
 #[derive(Component)]
 struct Terminal;
 
-
 #[derive(Component)]
 struct HpText;
 
@@ -68,14 +66,14 @@ struct HP {
 enum StateKind {
     GameOver,
     GameClear,
-    Playing
+    Playing,
 }
 
 fn get_random_position() -> Position {
     let mut rng = rand::thread_rng();
-    let x = rng.gen_range(FIELD_LEFTBTM_X .. FIELD_LEFTBTM_X as i32 + FIELD_WIDTH as i32);
-    let y = rng.gen_range(FIELD_LEFTBTM_Y .. FIELD_LEFTBTM_Y as i32 + FIELD_HEIGHT as i32);
-    Position {x, y}
+    let x = rng.gen_range(FIELD_LEFTBTM_X..FIELD_LEFTBTM_X as i32 + FIELD_WIDTH as i32);
+    let y = rng.gen_range(FIELD_LEFTBTM_Y..FIELD_LEFTBTM_Y as i32 + FIELD_HEIGHT as i32);
+    Position { x, y }
 }
 
 fn main() {
@@ -104,50 +102,57 @@ fn main() {
         .run();
 }
 
-fn setup_system(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>
-) {
+fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
     for i in 0..FIELD_WIDTH as i32 {
         for j in 0..FIELD_HEIGHT as i32 {
-            spawn_field(&mut commands, Position { x: i+FIELD_LEFTBTM_X, y: j+FIELD_LEFTBTM_Y});
+            spawn_field(
+                &mut commands,
+                Position {
+                    x: i + FIELD_LEFTBTM_X,
+                    y: j + FIELD_LEFTBTM_Y,
+                },
+            );
         }
     }
-    spawn_terminal(&mut commands, Position { 
-        x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1, 
-        y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1});
+    spawn_terminal(
+        &mut commands,
+        Position {
+            x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1,
+            y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1,
+        },
+    );
     spawn_player(&mut commands, Position { x: 4, y: 6 }, &asset_server);
     spawn_bear(&mut commands, get_random_position(), &asset_server);
     spawn_fox(&mut commands, get_random_position(), &asset_server);
     spawn_walnut(&mut commands, get_random_position(), &asset_server);
-    spawn_text(&mut commands, Position {x: 10, y: 10}, StateKind::Playing, &asset_server);
+    spawn_text(
+        &mut commands,
+        Position { x: 10, y: 10 },
+        StateKind::Playing,
+        &asset_server,
+    );
 }
 
-fn game_timer(
-    time: Res<Time>,
-    mut timer: ResMut<GameTimer>,
-) {
+fn game_timer(time: Res<Time>, mut timer: ResMut<GameTimer>) {
     timer.0.tick(time.delta());
 }
 
 fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
     let origin_x = UNIT_WIDTH as i32 / 2 - (SCREEN_WIDTH as i32 * UNIT_WIDTH as i32) / 2;
     let origin_y = UNIT_HEIGHT as i32 / 2 - (SCREEN_HEIGHT as i32 * UNIT_HEIGHT as i32) / 2;
-    position_query
-        .iter_mut()
-        .for_each(|(pos, mut transform)| {
-            transform.translation = Vec3::new(
-                (origin_x + pos.x as i32 * UNIT_WIDTH as i32) as f32,
-                (origin_y + pos.y as i32 * UNIT_HEIGHT as i32) as f32,
-                0.0,
-            );
-        });
+    position_query.iter_mut().for_each(|(pos, mut transform)| {
+        transform.translation = Vec3::new(
+            (origin_x + pos.x as i32 * UNIT_WIDTH as i32) as f32,
+            (origin_y + pos.y as i32 * UNIT_HEIGHT as i32) as f32,
+            0.0,
+        );
+    });
 }
 
 fn text_value(mut state_query: Query<(&State, &mut Text)>) {
-    state_query.iter_mut().for_each(|(state, mut text)|{
+    state_query.iter_mut().for_each(|(state, mut text)| {
         text.sections[0].value = match state.kind {
             StateKind::GameOver => "GameOver!!!!".to_string(),
             StateKind::GameClear => "GameClear!".to_string(),
@@ -160,168 +165,152 @@ fn spawn_text(
     commands: &mut Commands,
     position: Position,
     state_kind: StateKind,
-    asset_server: &Res<AssetServer>
+    asset_server: &Res<AssetServer>,
 ) {
-    commands.spawn_bundle(TextBundle {
-        text: Text::with_section(
-            "unknown!",
-            TextStyle {
-                font_size: 60.0,
-                color: Color::WHITE,
-                font: asset_server.load("fonts/FiraSans-Bold.ttf")
-            },
-            Default::default()
-        ),
-        ..Default::default()
-    }).insert(State{kind:state_kind});
-}
-
-fn spawn_field(
-    commands: &mut Commands,
-    position: Position,
-) {
-    let shape = shapes::Rectangle {
-        extents: Vec2::new(UNIT_WIDTH as f32, UNIT_HEIGHT as f32),
-        ..shapes::Rectangle::default()
-    };
-
-    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        DrawMode::Outlined {
-            fill_mode: FillMode::color(Color::GREEN),
-            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
-        },
-        Transform::default(),
-    )).insert(position).insert(Field);
-}
-
-fn spawn_terminal(
-    commands: &mut Commands,
-    position: Position,
-) {
-    let shape = shapes::Rectangle {
-        extents: Vec2::new(UNIT_WIDTH as f32, UNIT_HEIGHT as f32),
-        ..shapes::Rectangle::default()
-    };
-
-    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        DrawMode::Outlined {
-            fill_mode: FillMode::color(Color::GRAY),
-            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
-        },
-        Transform::default(),
-    )).insert(position).insert(Terminal);
-}
-
-fn spawn_player(
-    commands: &mut Commands,
-    position: Position,
-    asset_server: &Res<AssetServer>
-) {
-    let shape = shapes::Circle {
-        radius: (UNIT_WIDTH / 2) as f32,
-        center: Vec2::new(0.0, 0.0),
-    };
-
-    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        DrawMode::Outlined {
-            fill_mode: FillMode::color(Color::PURPLE),
-            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
-        },
-        Transform::default(),
-    )).with_children(|parent| {
-        /*
-        parent.spawn_bundle(TextBundle {
+    commands
+        .spawn_bundle(TextBundle {
             text: Text::with_section(
-                "fugafuga!",
+                "unknown!",
                 TextStyle {
-                    font_size: 10.0,
+                    font_size: 60.0,
                     color: Color::WHITE,
-                    font: asset_server.load("fonts/FiraSans-Bold.ttf")
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                 },
-                Default::default()
+                Default::default(),
             ),
             ..Default::default()
+        })
+        .insert(State { kind: state_kind });
+}
+
+fn spawn_field(commands: &mut Commands, position: Position) {
+    let shape = shapes::Rectangle {
+        extents: Vec2::new(UNIT_WIDTH as f32, UNIT_HEIGHT as f32),
+        ..shapes::Rectangle::default()
+    };
+
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::GREEN),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(position)
+        .insert(Field);
+}
+
+fn spawn_terminal(commands: &mut Commands, position: Position) {
+    let shape = shapes::Rectangle {
+        extents: Vec2::new(UNIT_WIDTH as f32, UNIT_HEIGHT as f32),
+        ..shapes::Rectangle::default()
+    };
+
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::GRAY),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(position)
+        .insert(Terminal);
+}
+
+fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
+    let shape = shapes::Circle {
+        radius: (UNIT_WIDTH / 2) as f32,
+        center: Vec2::new(0.0, 0.0),
+    };
+
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::PURPLE),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(Player)
+        .insert(position)
+        .insert(HP {
+            max: MAX_HP_PLAYER,
+            val: MAX_HP_PLAYER,
         });
-        */
-        parent.spawn_bundle(
-            GeometryBuilder::build_as(
-                &shape,
-                DrawMode::Outlined {
-                    fill_mode: FillMode::color(Color::AZURE),
-                    outline_mode: StrokeMode::new(Color::BLACK, 0.0),
-                },
-                Transform::from_translation(Vec3::new(
-                    UNIT_WIDTH as f32,
-                    UNIT_HEIGHT as f32,
-                    0.0
-                ))
-            )
-        );
-    })
-    .insert(Player).insert(position).insert(HP {max: MAX_HP_PLAYER, val: MAX_HP_PLAYER});
 }
 
-fn spawn_bear(
-    commands: &mut Commands,
-    position: Position,
-    asset_server: &Res<AssetServer>
-) {
+fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
     let shape = shapes::Circle {
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
 
-    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        DrawMode::Outlined {
-            fill_mode: FillMode::color(Color::rgb_u8(148, 115, 91)),
-            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
-        },
-        Transform::default(),
-    )).insert(Bear).insert(position).insert(HP {max: MAX_HP_BEAR, val: MAX_HP_BEAR});
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::rgb_u8(148, 115, 91)),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(Bear)
+        .insert(position)
+        .insert(HP {
+            max: MAX_HP_BEAR,
+            val: MAX_HP_BEAR,
+        });
 }
 
-fn spawn_fox(
-    commands: &mut Commands,
-    position: Position,
-    asset_server: &Res<AssetServer>
-) {
+fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
     let shape = shapes::Circle {
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
 
-    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        DrawMode::Outlined {
-            fill_mode: FillMode::color(Color::ORANGE),
-            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
-        },
-        Transform::default(),
-    )).insert(Fox).insert(position).insert(HP {max: MAX_HP_FOX, val: MAX_HP_FOX});
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::ORANGE),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(Fox)
+        .insert(position)
+        .insert(HP {
+            max: MAX_HP_FOX,
+            val: MAX_HP_FOX,
+        });
 }
 
-fn spawn_walnut(
-    commands: &mut Commands,
-    position: Position,
-    asset_server: &Res<AssetServer>
-) {
+fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
     let shape = shapes::Circle {
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
 
-    commands.spawn_bundle(GeometryBuilder::build_as(
-        &shape,
-        DrawMode::Outlined {
-            fill_mode: FillMode::color(Color::YELLOW),
-            outline_mode: StrokeMode::new(Color::BLACK, 0.0),
-        },
-        Transform::default(),
-    )).insert(position).insert(Walnut).insert(HP {max: MAX_HP_WALNUT, val: MAX_HP_WALNUT});
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::YELLOW),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(position)
+        .insert(Walnut)
+        .insert(HP {
+            max: MAX_HP_WALNUT,
+            val: MAX_HP_WALNUT,
+        });
 }
 
 fn move_player(
@@ -333,12 +322,12 @@ fn move_player(
     if !timer.0.finished() {
         return;
     }
- 
+
     let mut x = 0;
     let mut y = 0;
     if key_input.pressed(KeyCode::Left) {
         x -= 1;
-    } 
+    }
     if key_input.pressed(KeyCode::Right) {
         x += 1;
     }
@@ -346,13 +335,16 @@ fn move_player(
         y += 1;
     }
     if key_input.pressed(KeyCode::Down) {
-        y -= 1;   
+        y -= 1;
     }
 
     player_query.iter_mut().for_each(|mut pos_player| {
-        if field_query.iter().any(|pos_field| pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y) {
+        if field_query
+            .iter()
+            .any(|pos_field| pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y)
+        {
             pos_player.x += x;
-            pos_player.y += y;        
+            pos_player.y += y;
         }
     })
 }
@@ -363,64 +355,67 @@ fn goal(
     mut state_query: Query<&mut State>,
 ) {
     player_query.iter().for_each(|pos_player| {
-        if terminal_query.iter().any(|pos_field| pos_player.x == pos_field.x && pos_player.y == pos_field.y) {
+        if terminal_query
+            .iter()
+            .any(|pos_field| pos_player.x == pos_field.x && pos_player.y == pos_field.y)
+        {
             state_query.iter_mut().for_each(|mut state| {
                 state.kind = StateKind::GameClear;
             });
         }
     })
-
 }
 
-fn despawn_hp_text(
-    mut commands: Commands,
-    text_query: Query<Entity, With<HpText>>
-) {
-  text_query.iter().for_each(|text| {
-    commands.entity(text).despawn();
-  }) 
+fn despawn_hp_text(mut commands: Commands, text_query: Query<Entity, With<HpText>>) {
+    text_query.iter().for_each(|text| {
+        commands.entity(text).despawn();
+    })
 }
 
 fn spawn_all_hp_text(
     mut commands: Commands,
     character_query: Query<(&Position, &HP)>,
-    asset_server: Res<AssetServer>
+    asset_server: Res<AssetServer>,
 ) {
-    character_query.iter().for_each(|(pos_character, hp_character)| {
-        spawn_hp_text(&mut commands, pos_character, hp_character, &asset_server);
-    })
+    character_query
+        .iter()
+        .for_each(|(pos_character, hp_character)| {
+            spawn_hp_text(&mut commands, pos_character, hp_character, &asset_server);
+        })
 }
 
 fn spawn_hp_text(
     commands: &mut Commands,
     position: &Position,
     hp: &HP,
-    asset_server: &Res<AssetServer>
+    asset_server: &Res<AssetServer>,
 ) {
     let text = Text::with_section(
         format!("{}", hp.val),
         TextStyle {
             font_size: 10.0,
             color: Color::BLACK,
-            font: asset_server.load("fonts/FiraSans-Bold.ttf")
+            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
         },
-        Default::default()
+        Default::default(),
     );
 
     let origin_x = UNIT_WIDTH as i32 / 2;
     let origin_y = UNIT_HEIGHT as i32 / 2;
-    
-    commands.spawn_bundle(TextBundle {
-        text: text,
-        style: Style {
-            position_type: PositionType::Absolute,
-            position: Rect {
-                left: Val::Px((origin_x + position.x * UNIT_WIDTH as i32) as f32),
-                bottom: Val::Px((origin_y + position.y * UNIT_HEIGHT as i32) as f32),
+
+    commands
+        .spawn_bundle(TextBundle {
+            text: text,
+            style: Style {
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    left: Val::Px((origin_x + position.x * UNIT_WIDTH as i32) as f32),
+                    bottom: Val::Px((origin_y + position.y * UNIT_HEIGHT as i32) as f32),
+                    ..default()
+                },
                 ..default()
             },
-            ..default()
-        },
-        ..Default::default()
-    }).insert(HpText);
+            ..Default::default()
+        })
+        .insert(HpText);
 }
