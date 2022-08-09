@@ -99,6 +99,7 @@ fn main() {
         .add_system(despawn_hp_text)
         .add_system(spawn_all_hp_text)
         .add_system(position_transform)
+        .add_system(hungry)
         .run();
 }
 
@@ -306,11 +307,7 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
             Transform::default(),
         ))
         .insert(position)
-        .insert(Walnut)
-        .insert(HP {
-            max: MAX_HP_WALNUT,
-            val: MAX_HP_WALNUT,
-        });
+        .insert(Walnut);
 }
 
 fn move_player(
@@ -418,4 +415,20 @@ fn spawn_hp_text(
             ..Default::default()
         })
         .insert(HpText);
+}
+
+/*
+ * Walnut: すでにあるWalnutの付近にランダム生成。死なない。
+ * Fox   : Walnut食べないと死ぬ。Walnut食べてたら増える。
+ * Bear  : Fox or Walnut or Player食べないと死ぬ。Fox or Walnut食べてたら増える。
+ * Player: Walnut or Fox or Bear食べないと死ぬ。Bearを食べないと生態系が崩れる仕様。
+ */
+fn hungry(timer: ResMut<GameTimer>, mut character_query: Query<&mut HP>) {
+    if !timer.0.finished() {
+        return;
+    }
+
+    character_query.iter_mut().for_each(|mut hp| {
+        hp.val -= 1;
+    })
 }
