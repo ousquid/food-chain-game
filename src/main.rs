@@ -19,10 +19,9 @@ const MOVE_SPEED_BEAR: u32 = 8;
 const MOVE_SPEED_FOX: u32 = 5;
 const MOVE_SPEED_WALNUT: u32 = 0;
 
-const MAX_HP_PLAYER: i32 = 100;
-const MAX_HP_BEAR: i32 = 500;
-const MAX_HP_FOX: i32 = 30;
-const MAX_HP_WALNUT: i32 = 1;
+const MAX_HP_PLAYER: f32 = 100.0;
+const MAX_HP_BEAR: f32 = 500.0;
+const MAX_HP_FOX: f32 = 30.0;
 
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 struct Position {
@@ -59,8 +58,8 @@ struct Counter {
 }
 #[derive(Component)]
 struct HP {
-    val: i32,
-    max: i32,
+    val: f32,
+    max: f32,
 }
 
 enum StateKind {
@@ -429,6 +428,6 @@ fn hungry(timer: ResMut<GameTimer>, mut character_query: Query<&mut HP>) {
     }
 
     character_query.iter_mut().for_each(|mut hp| {
-        hp.val -= 1;
+        hp.val -= 0.2;
     })
 }
