@@ -1,3 +1,6 @@
+use std::f32::INFINITY;
+
+use bevy::ecs::*;
 use bevy::prelude::*;
 use rand::prelude::*;
 // https://docs.rs/bevy_prototype_lyon/latest/bevy_prototype_lyon/
@@ -19,9 +22,10 @@ const MOVE_SPEED_BEAR: u32 = 8;
 const MOVE_SPEED_FOX: u32 = 5;
 const MOVE_SPEED_WALNUT: u32 = 0;
 
-const MAX_HP_PLAYER: f32 = 100.0;
-const MAX_HP_BEAR: f32 = 500.0;
+const MAX_HP_PLAYER: f32 = 60.0;
+const MAX_HP_BEAR: f32 = 300.0;
 const MAX_HP_FOX: f32 = 30.0;
+const MAX_HP_WALNUT: f32 = INFINITY;
 
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 struct Position {
@@ -36,7 +40,6 @@ struct Player;
 struct Bear;
 #[derive(Component)]
 struct Fox;
-
 #[derive(Component)]
 struct Walnut;
 
@@ -99,6 +102,7 @@ fn main() {
         .add_system(spawn_all_hp_text)
         .add_system(position_transform)
         .add_system(hungry)
+        .add_system(eat)
         .run();
 }
 
@@ -305,8 +309,12 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
             },
             Transform::default(),
         ))
+        .insert(Walnut)
         .insert(position)
-        .insert(Walnut);
+        .insert(HP {
+            max: MAX_HP_WALNUT,
+            val: MAX_HP_WALNUT,
+        });
 }
 
 fn move_player(
@@ -387,7 +395,7 @@ fn spawn_hp_text(
     asset_server: &Res<AssetServer>,
 ) {
     let text = Text::with_section(
-        format!("{}", hp.val),
+        format!("{}", hp.val as i32),
         TextStyle {
             font_size: 10.0,
             color: Color::BLACK,
@@ -421,13 +429,101 @@ fn spawn_hp_text(
  * Fox   : Walnut食べないと死ぬ。Walnut食べてたら増える。
  * Bear  : Fox or Walnut or Player食べないと死ぬ。Fox or Walnut食べてたら増える。
  * Player: Walnut or Fox or Bear食べないと死ぬ。Bearを食べないと生態系が崩れる仕様。
+ *
+ * 寿命
+ * Ship: 5分に1回来る。30秒ぐらい滞在
+ * Player: 止まってたら1分ぐらいで死ぬ。島を頑張って回る必要あり。島は端から端まで10秒ぐらいで移動可?
  */
-fn hungry(timer: ResMut<GameTimer>, mut character_query: Query<&mut HP>) {
+fn hungry(
+    mut commands: Commands,
+    timer: ResMut<GameTimer>,
+    mut food_query: Query<(Entity, &mut HP)>,
+) {
     if !timer.0.finished() {
         return;
     }
 
-    character_query.iter_mut().for_each(|mut hp| {
+    food_query.iter_mut().for_each(|(entity, mut hp)| {
         hp.val -= 0.2;
+        if hp.val <= 0.0 {
+            commands.entity(entity).despawn();
+        }
     })
+}
+
+fn eat(
+    mut commands: Commands,
+    timer: ResMut<GameTimer>,
+    mut food_query: Query<(Entity, &Position, &mut HP)>,
+) {
+    food_query.iter_mut().for_each(|(entity1, pos1, mut hp1)| {
+        food_query.iter_mut().for_each(|(entity2, pos2, mut hp2)| {
+            if pos1 == pos2 {
+                if let Ok(_) = food_query.get_component::<Bear>(entity1) {
+                    if let Ok(_) = food_query.get_component::<Walnut>(entity2) {
+                        //...
+                    } else if let Ok(_) = food_query.get_component::<Fox>(entity2) {
+                        //...
+                    } else if let Ok(_) = food_query.get_component::<Player>(entity2) {
+                        //...
+                    }
+                }
+            }
+        });
+    });
+
+    food_query.iter_mut().for_each(|(entity, _, mut hp)| {
+        if hp < 0.0 {
+            commands.entity(entity).despawn();
+        }
+    });
+}
+
+/*
+#[derive(Component)]
+struct WalnutEater;
+struct FoxEater;
+struct BearEater;
+
+fn eat_walnut(
+    mut query_set: ParamSet<(
+        Query<(Entity, &Position, &mut HP), With(WalnutEater)>
+        Query<(Entity, &Position, &mut HP), With(Walnut)>
+    )>
+) {
+    walnut_query.~~~ {
+        walnut_eater_query.~~~ {
+            // (食べる側の HP 回復をどうするか・・・)
+        }
+        // walnut の HP を 0 に
+    }
+}
+
+  - fox に食べられる
+  - bear に食べられる
+  - player に食べられる
+  - walnut を食べる
+  - fox を食べる
+  - bear を食べる
+  - player を食べる
+*/
+
+fn bear_eat_walnut(
+    mut commands: Commands,
+    timer: ResMut<GameTimer>,
+    mut query_set: ParamSet<(
+        Query<(Entity, &Bear, &Position, &mut HP)>,
+        Query<(Entity, &Walnut, &Position, &mut HP)>,
+    )>,
+) {
+    let bear_query = query_set.p0();
+    let walnut_query = query_set.p1();
+    bear_query.iter_mut().for_each(|(entity1, _, pos1, hp1)| {
+        walnut_query.iter_mut().for_each(|(entity2, _, pos2, hp2)| {
+            if pos1 == pos2 {
+                hp1.val += 1;
+                commands.entity(entity2).despawn();
+            }
+        });
+    });
 }
