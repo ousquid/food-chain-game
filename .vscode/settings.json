@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
         "despawn"
-    ]
+    ],
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
 }
