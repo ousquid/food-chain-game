@@ -1,4 +1,7 @@
-use std::f32::INFINITY;
+pub mod components;
+pub mod hp;
+use crate::components::*;
+use crate::hp::*;
 
 use bevy::ecs::*;
 use bevy::prelude::*;
@@ -22,65 +25,9 @@ const MOVE_SPEED_BEAR: u32 = 8;
 const MOVE_SPEED_FOX: u32 = 5;
 const MOVE_SPEED_WALNUT: u32 = 0;
 
-const MAX_HP_HUMAN: f32 = 60.0;
-const MAX_HP_BEAR: f32 = 300.0;
-const MAX_HP_FOX: f32 = 30.0;
-const MAX_HP_WALNUT: f32 = INFINITY;
-
-const HEALING_HP_HUMAN: f32 = 30.0;
-const HEALING_HP_BEAR: f32 = 60.0;
-const HEALING_HP_FOX: f32 = 10.0;
-const HEALING_HP_WALNUT: f32 = 5.0;
-
-const WEAK_HP_RATIO: f32 = 0.9;
-
-#[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
-struct Position {
-    x: i32,
-    y: i32,
-}
-struct GameTimer(Timer);
-
-#[derive(Component)]
-struct Player;
-#[derive(Component)]
-struct Human;
-#[derive(Component)]
-struct Bear;
-#[derive(Component)]
-struct Fox;
-#[derive(Component)]
-struct Walnut;
-
-#[derive(Component)]
-struct WalnutEater;
-#[derive(Component)]
-struct FoxEater;
-#[derive(Component)]
-struct BearEater;
-#[derive(Component)]
-struct HumanEater;
-
-#[derive(Component)]
-struct Field;
-#[derive(Component)]
-struct Terminal;
-
-#[derive(Component)]
-struct HpText;
-
 #[derive(Component)]
 struct State {
     kind: StateKind,
-}
-#[derive(Component)]
-struct Counter {
-    val: i32,
-}
-#[derive(Component)]
-struct HP {
-    val: f32,
-    max: f32,
 }
 
 enum StateKind {
@@ -88,6 +35,8 @@ enum StateKind {
     GameClear,
     Playing,
 }
+
+struct GameTimer(Timer);
 
 fn get_random_position() -> Position {
     let mut rng = rand::thread_rng();
@@ -111,6 +60,7 @@ fn main() {
         )))
         .add_plugins(DefaultPlugins)
         .add_plugin(ShapePlugin)
+        .add_plugin(HpPlugin)
         .add_startup_system(setup_system)
         .add_system(move_player)
         .add_system(text_value)
@@ -119,24 +69,6 @@ fn main() {
         .add_system(despawn_hp_text)
         .add_system(spawn_all_hp_text)
         .add_system(position_transform)
-        .add_system(hungry)
-        .add_system_set(
-            SystemSet::new()
-            .label("eat")
-            .with_system(eat_walnut)
-            .with_system(eat_fox)
-            .with_system(eat_bear)
-            .with_system(eat_human)
-        )
-        .add_system_set(
-            SystemSet::new()
-            .after("eat")
-            .label("eaten")
-            .with_system(eaten_walnut)
-            .with_system(eaten_fox)
-            .with_system(eaten_bear)
-            .with_system(eaten_human)
-        )
         .add_system(despawn.after("eaten"))
         .run();
 }
@@ -281,10 +213,7 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(FoxEater)
         .insert(BearEater)
         .insert(position)
-        .insert(HP {
-            max: MAX_HP_HUMAN,
-            val: MAX_HP_HUMAN,
-        });
+        .insert(HP::human());
 }
 
 fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -307,10 +236,7 @@ fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<As
         .insert(FoxEater)
         .insert(HumanEater)
         .insert(position)
-        .insert(HP {
-            max: MAX_HP_BEAR,
-            val: MAX_HP_BEAR,
-        });
+        .insert(HP::bear());
 }
 
 fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -331,10 +257,7 @@ fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<Ass
         .insert(Fox)
         .insert(WalnutEater)
         .insert(position)
-        .insert(HP {
-            max: MAX_HP_FOX,
-            val: MAX_HP_FOX,
-        });
+        .insert(HP::fox());
 }
 
 fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -354,10 +277,7 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
         ))
         .insert(Walnut)
         .insert(position)
-        .insert(HP {
-            max: MAX_HP_WALNUT,
-            val: MAX_HP_WALNUT,
-        });
+        .insert(HP::walnut());
 }
 
 fn move_player(
@@ -467,142 +387,7 @@ fn spawn_hp_text(
         .insert(HpText);
 }
 
-/*
- * Walnut: すでにあるWalnutの付近にランダム生成。死なない。
- * Fox   : Walnut食べないと死ぬ。Walnut食べてたら増える。
- * Bear  : Fox or Walnut or Player食べないと死ぬ。Fox or Walnut食べてたら増える。
- * Player: Walnut or Fox or Bear食べないと死ぬ。Bearを食べないと生態系が崩れる仕様。
- *
- * 寿命
- * Ship: 5分に1回来る。30秒ぐらい滞在
- * Player: 止まってたら1分ぐらいで死ぬ。島を頑張って回る必要あり。島は端から端まで10秒ぐらいで移動可?
- */
-fn hungry(
-    mut commands: Commands,
-    timer: ResMut<GameTimer>,
-    mut food_query: Query<(Entity, &mut HP)>,
-) {
-    if !timer.0.finished() {
-        return;
-    }
-
-    food_query.iter_mut().for_each(|(entity, mut hp)| {
-        hp.val -= 0.2;
-    })
-}
-
-fn eaten_walnut(
-    eater_query: Query<(Entity, &Position, &HP), With<WalnutEater>>,
-    mut walnut_query: Query<(Entity, &Position, &mut HP), (With<Walnut>, Without<WalnutEater>)>
-) {
-    walnut_query.iter_mut().for_each(|(_, w_pos, mut w_hp)| {
-        eater_query.iter().for_each(|(_, e_pos, _)| {
-            if e_pos == w_pos {
-                w_hp.val = 0.0;
-            }
-        });
-    });
-    
-}
-
-fn eat_walnut(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<WalnutEater>, Without<Walnut>)>,
-    walnut_query: Query<(Entity, &Position, &HP), With<Walnut>>
-) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        walnut_query.iter().for_each(|(_, w_pos, _)| {
-            if e_pos == w_pos {
-                e_hp.val +=  HEALING_HP_WALNUT;           
-            }
-        })
-    })
-}
-
-fn eaten_fox(
-    eater_query: Query<(Entity, &Position, &HP), With<FoxEater>>,
-    mut fox_query: Query<(Entity, &Position, &mut HP), (With<Fox>, Without<FoxEater>)>
-) {
-    fox_query.iter_mut().for_each(|(_, f_pos, mut f_hp)| {
-        eater_query.iter().for_each(|(_, e_pos, _)| {
-            if e_pos == f_pos {
-                f_hp.val = 0.0;
-            }
-        });
-    });
-    
-}
-
-fn eat_fox(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<FoxEater>, Without<Fox>)>,
-    fox_query: Query<(Entity, &Position, &HP), With<Fox>>
-) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        fox_query.iter().for_each(|(_, f_pos, _)| {
-            if e_pos == f_pos {
-                e_hp.val +=  HEALING_HP_FOX;           
-            }
-        })
-    })
-}
-
-fn eaten_bear(
-    eater_query: Query<(Entity, &Position, &HP), With<BearEater>>,
-    mut bear_query: Query<(Entity, &Position, &mut HP), (With<Bear>, Without<BearEater>)>
-) {
-    bear_query.iter_mut().for_each(|(_, b_pos, mut b_hp)| {
-        eater_query.iter().for_each(|(_, e_pos, _)| {
-            if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
-                b_hp.val = 0.0;
-            }
-        });
-    });
-    
-}
-
-fn eat_bear(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<BearEater>, Without<Bear>)>,
-    bear_query: Query<(Entity, &Position, &HP), With<Bear>>
-) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        bear_query.iter().for_each(|(_, b_pos, b_hp)| {
-            if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
-                e_hp.val +=  HEALING_HP_BEAR;           
-            }
-        })
-    })
-}
-
-fn eaten_human(
-    eater_query: Query<(Entity, &Position, &HP), With<HumanEater>>,
-    mut human_query: Query<(Entity, &Position, &mut HP), (With<Human>, Without<HumanEater>)>
-) {
-    human_query.iter_mut().for_each(|(_, h_pos, mut h_hp)| {
-        eater_query.iter().for_each(|(_, e_pos, e_hp)| {
-            if h_pos == e_pos && e_hp.val > e_hp.max * WEAK_HP_RATIO {
-                h_hp.val = 0.0;
-            }
-        });
-    });
-    
-}
-
-fn eat_human(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<HumanEater>, Without<Human>)>,
-    human_query: Query<(Entity, &Position, &HP), With<Human>>
-) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        human_query.iter().for_each(|(_, h_pos, h_hp)| {
-            if h_pos == e_pos && e_hp.val > e_hp.max * WEAK_HP_RATIO {
-                e_hp.val +=  HEALING_HP_HUMAN;           
-            }
-        })
-    })
-}
-
-fn despawn(
-    mut commands: Commands,
-    mut food_query: Query<(Entity, &HP)>,
-){
+fn despawn(mut commands: Commands, mut food_query: Query<(Entity, &HP)>) {
     food_query.iter_mut().for_each(|(entity, hp)| {
         if hp.val <= 0.0 {
             commands.entity(entity).despawn();
