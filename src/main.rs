@@ -20,10 +20,11 @@ const FIELD_HEIGHT: u32 = 28;
 const SCREEN_WIDTH: u32 = 24;
 const SCREEN_HEIGHT: u32 = 36;
 
-const MOVE_SPEED_HUMAN: u32 = 10;
-const MOVE_SPEED_BEAR: u32 = 8;
-const MOVE_SPEED_FOX: u32 = 5;
-const MOVE_SPEED_WALNUT: u32 = 0;
+const HEALING_STAMINA_HUMAN: i32 = 10;
+const HEALING_STAMINA_BEAR: i32 = 8;
+const HEALING_STAMINA_FOX: i32 = 5;
+const HEALING_STAMINA_WALNUT: i32 = 0;
+const MAX_STAMINA: i32 = 100;
 
 #[derive(Component)]
 struct State {
@@ -37,6 +38,22 @@ enum StateKind {
 }
 
 struct GameTimer(Timer);
+
+#[derive(Component)]
+pub struct Stamina {
+    pub val: i32,
+}
+
+impl Stamina {
+    fn cool_down(&mut self, val: i32) {
+        if self.val < MAX_STAMINA {
+            self.val += val;
+        }
+    }
+    fn can_move(&self) -> bool {
+        self.val >= MAX_STAMINA
+    }
+}
 
 fn get_random_position() -> Position {
     let mut rng = rand::thread_rng();
@@ -213,6 +230,7 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(FoxEater)
         .insert(BearEater)
         .insert(position)
+        .insert(Stamina { val: 0 })
         .insert(HP::human());
 }
 
@@ -236,6 +254,7 @@ fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<As
         .insert(FoxEater)
         .insert(HumanEater)
         .insert(position)
+        .insert(Stamina { val: 0 })
         .insert(HP::bear());
 }
 
@@ -257,6 +276,7 @@ fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<Ass
         .insert(Fox)
         .insert(WalnutEater)
         .insert(position)
+        .insert(Stamina { val: 0 })
         .insert(HP::fox());
 }
 
@@ -277,6 +297,7 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
         ))
         .insert(Walnut)
         .insert(position)
+        .insert(Stamina { val: 0 })
         .insert(HP::walnut());
 }
 
@@ -284,7 +305,7 @@ fn move_player(
     key_input: Res<Input<KeyCode>>,
     timer: ResMut<GameTimer>,
     field_query: Query<&Position, With<Field>>,
-    mut player_query: Query<&mut Position, (With<Player>, Without<Field>)>,
+    mut player_query: Query<(&mut Position, &mut Stamina), (With<Player>, Without<Field>)>,
 ) {
     if !timer.0.finished() {
         return;
@@ -305,15 +326,20 @@ fn move_player(
         y -= 1;
     }
 
-    player_query.iter_mut().for_each(|mut pos_player| {
-        if field_query
-            .iter()
-            .any(|pos_field| pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y)
-        {
-            pos_player.x += x;
-            pos_player.y += y;
-        }
-    })
+    player_query
+        .iter_mut()
+        .for_each(|(mut pos_player, mut stamina)| {
+            stamina.cool_down(HEALING_STAMINA_HUMAN);
+            if stamina.can_move() && (x != 0 || y != 0) {
+                if field_query.iter().any(|pos_field| {
+                    pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y
+                }) {
+                    pos_player.x += x;
+                    pos_player.y += y;
+                    stamina.val = 0
+                }
+            }
+        })
 }
 
 fn goal(
