@@ -41,18 +41,55 @@ struct GameTimer(Timer);
 
 #[derive(Component)]
 pub struct Stamina {
+    pub healing_val: i32,
     pub val: i32,
 }
 
 impl Stamina {
-    fn cool_down(&mut self, val: i32) {
+    fn cool_down(&mut self) {
         if self.val < MAX_STAMINA {
-            self.val += val;
+            self.val += self.healing_val;
         }
     }
     fn can_move(&self) -> bool {
         self.val >= MAX_STAMINA
     }
+    fn human() -> Stamina {
+        Stamina {
+            healing_val: HEALING_STAMINA_HUMAN,
+            val: 0,
+        }
+    }
+    fn bear() -> Stamina {
+        Stamina {
+            healing_val: HEALING_STAMINA_BEAR,
+            val: 0,
+        }
+    }
+    fn fox() -> Stamina {
+        Stamina {
+            healing_val: HEALING_STAMINA_FOX,
+            val: 0,
+        }
+    }
+    fn walnut() -> Stamina {
+        Stamina {
+            healing_val: HEALING_STAMINA_WALNUT,
+            val: 0,
+        }
+    }
+}
+
+fn get_random_direction() -> Position {
+    let choices = [
+        Position { x: -1, y: 0 },
+        Position { x: 1, y: 0 },
+        Position { x: 0, y: -1 },
+        Position { x: 0, y: 1 },
+        Position { x: 0, y: 0 },
+    ];
+    let mut rng = thread_rng();
+    *choices.choose(&mut rng).unwrap()
 }
 
 fn get_random_position() -> Position {
@@ -79,7 +116,10 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_plugin(HpPlugin)
         .add_startup_system(setup_system)
+        .add_system(heal)
         .add_system(move_player)
+        .add_system(move_fox)
+        .add_system(move_bear)
         .add_system(text_value)
         .add_system(game_timer)
         .add_system(goal)
@@ -230,7 +270,7 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(FoxEater)
         .insert(BearEater)
         .insert(position)
-        .insert(Stamina { val: 0 })
+        .insert(Stamina::human())
         .insert(HP::human());
 }
 
@@ -254,7 +294,7 @@ fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<As
         .insert(FoxEater)
         .insert(HumanEater)
         .insert(position)
-        .insert(Stamina { val: 0 })
+        .insert(Stamina::bear())
         .insert(HP::bear());
 }
 
@@ -276,7 +316,7 @@ fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<Ass
         .insert(Fox)
         .insert(WalnutEater)
         .insert(position)
-        .insert(Stamina { val: 0 })
+        .insert(Stamina::fox())
         .insert(HP::fox());
 }
 
@@ -297,8 +337,56 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
         ))
         .insert(Walnut)
         .insert(position)
-        .insert(Stamina { val: 0 })
+        .insert(Stamina::walnut())
         .insert(HP::walnut());
+}
+
+fn reachable(field_query: &Query<&Position, With<Field>>, x: i32, y: i32) -> bool {
+    field_query
+        .iter()
+        .any(|pos_field| x == pos_field.x && y == pos_field.y)
+}
+
+fn move_fox(
+    timer: ResMut<GameTimer>,
+    field_query: Query<&Position, With<Field>>,
+    mut fox_query: Query<(&mut Position, &mut Stamina), (With<Fox>, Without<Field>)>,
+) {
+    if !timer.0.finished() {
+        return;
+    }
+    fox_query.iter_mut().for_each(|(mut pos_fox, mut stamina)| {
+        let dir = get_random_direction();
+        if stamina.can_move() {
+            if reachable(&field_query, pos_fox.x + dir.x, pos_fox.y + dir.y) {
+                pos_fox.x += dir.x;
+                pos_fox.y += dir.y;
+                stamina.val = 0
+            }
+        }
+    })
+}
+
+fn move_bear(
+    timer: ResMut<GameTimer>,
+    field_query: Query<&Position, With<Field>>,
+    mut bear_query: Query<(&mut Position, &mut Stamina), (With<Bear>, Without<Field>)>,
+) {
+    if !timer.0.finished() {
+        return;
+    }
+    bear_query
+        .iter_mut()
+        .for_each(|(mut pos_bear, mut stamina)| {
+            let dir = get_random_direction();
+            if stamina.can_move() {
+                if reachable(&field_query, pos_bear.x + dir.x, pos_bear.y + dir.y) {
+                    pos_bear.x += dir.x;
+                    pos_bear.y += dir.y;
+                    stamina.val = 0
+                }
+            }
+        })
 }
 
 fn move_player(
@@ -329,17 +417,24 @@ fn move_player(
     player_query
         .iter_mut()
         .for_each(|(mut pos_player, mut stamina)| {
-            stamina.cool_down(HEALING_STAMINA_HUMAN);
             if stamina.can_move() && (x != 0 || y != 0) {
-                if field_query.iter().any(|pos_field| {
-                    pos_player.x + x == pos_field.x && pos_player.y + y == pos_field.y
-                }) {
+                if reachable(&field_query, pos_player.x + x, pos_player.y + y) {
                     pos_player.x += x;
                     pos_player.y += y;
                     stamina.val = 0
                 }
             }
         })
+}
+
+fn heal(timer: ResMut<GameTimer>, mut food_query: Query<&mut Stamina>) {
+    if !timer.0.finished() {
+        return;
+    }
+
+    food_query
+        .iter_mut()
+        .for_each(|mut stamina| stamina.cool_down())
 }
 
 fn goal(
