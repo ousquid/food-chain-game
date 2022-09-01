@@ -96,6 +96,18 @@ fn get_random_direction() -> Position {
     *choices.choose(&mut rng).unwrap()
 }
 
+fn get_increase_pos(pos: &Position, range: u32) -> Position {
+    loop {
+        let mut rng = rand::thread_rng();
+        let x = rng.gen_range(-(range as i32)..range as i32);
+        let y = rng.gen_range(-(range as i32)..range as i32);
+        let new_pos = Position { x, y };
+        if new_pos != *pos {
+            return new_pos;
+        }
+    }
+}
+
 fn get_random_position() -> Position {
     let mut rng = rand::thread_rng();
     let x = rng.gen_range(FIELD_LEFTBTM_X..FIELD_LEFTBTM_X as i32 + FIELD_WIDTH as i32);
@@ -124,12 +136,13 @@ fn main() {
         .add_system(move_player)
         .add_system(move_fox)
         .add_system(move_bear)
+        .add_system(increase_walnut.before("transform"))
         .add_system(text_value)
         .add_system(game_timer)
         .add_system(goal)
         .add_system(despawn_hp_text)
         .add_system(spawn_all_hp_text)
-        .add_system(position_transform)
+        .add_system(position_transform.label("transform"))
         .add_system(despawn.after("eaten"))
         .run();
 }
@@ -177,15 +190,19 @@ fn game_timer(time: Res<Time>, mut timer: ResMut<GameTimer>) {
     timer.0.tick(time.delta());
 }
 
-fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
+fn get_render_position(pos: &Position) -> Position {
     let origin_x = UNIT_WIDTH as i32 / 2 - (SCREEN_WIDTH as i32 * UNIT_WIDTH as i32) / 2;
     let origin_y = UNIT_HEIGHT as i32 / 2 - (SCREEN_HEIGHT as i32 * UNIT_HEIGHT as i32) / 2;
+    return Position {
+        x: origin_x + pos.x as i32 * UNIT_WIDTH as i32,
+        y: origin_y + pos.y as i32 * UNIT_HEIGHT as i32,
+    };
+}
+
+fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
     position_query.iter_mut().for_each(|(pos, mut transform)| {
-        transform.translation = Vec3::new(
-            (origin_x + pos.x as i32 * UNIT_WIDTH as i32) as f32,
-            (origin_y + pos.y as i32 * UNIT_HEIGHT as i32) as f32,
-            0.0,
-        );
+        let render_pos = get_render_position(pos);
+        transform.translation = Vec3::new(render_pos.x as f32, render_pos.y as f32, 0.0);
     });
 }
 
@@ -335,6 +352,7 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
+    let render_pos = get_render_position(&position);
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -343,12 +361,40 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
                 fill_mode: FillMode::color(Color::YELLOW),
                 outline_mode: StrokeMode::new(Color::BLACK, 0.0),
             },
-            Transform::default(),
+            Transform {
+                translation: Vec3::new(render_pos.x as f32, render_pos.y as f32, 0.0),
+                ..Default::default()
+            },
         ))
         .insert(Walnut)
         .insert(position)
         .insert(Stamina::walnut())
         .insert(HP::walnut());
+}
+
+fn increase_walnut(
+    mut commands: Commands,
+    timer: ResMut<GameTimer>,
+    walnut_query: Query<&Position, With<Walnut>>,
+    field_query: Query<&Position, With<Field>>,
+    asset_server: Res<AssetServer>,
+) {
+    if !timer.0.finished() {
+        return;
+    }
+    let mut rng = rand::thread_rng();
+    walnut_query.iter().for_each(|position| {
+        if rng.gen_range(1..=100) > 99 {
+            let offset = get_increase_pos(&position, 2);
+            let new_pos = Position {
+                x: position.x + offset.x,
+                y: position.y + offset.y,
+            };
+            if reachable(&field_query, new_pos.x, new_pos.y) {
+                spawn_walnut(&mut commands, new_pos, &asset_server);
+            }
+        }
+    });
 }
 
 fn reachable(field_query: &Query<&Position, With<Field>>, x: i32, y: i32) -> bool {
