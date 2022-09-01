@@ -20,6 +20,10 @@ const FIELD_HEIGHT: u32 = 28;
 const SCREEN_WIDTH: u32 = 24;
 const SCREEN_HEIGHT: u32 = 36;
 
+const INITIAL_BEAR_NUM: u32 = 5;
+const INITIAL_FOX_NUM: u32 = 8;
+const INITIAL_WALNUT_NUM: u32 = 10;
+
 const HEALING_STAMINA_HUMAN: i32 = 10;
 const HEALING_STAMINA_BEAR: i32 = 8;
 const HEALING_STAMINA_FOX: i32 = 5;
@@ -152,9 +156,15 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
     );
     spawn_player(&mut commands, Position { x: 4, y: 6 }, &asset_server);
-    spawn_bear(&mut commands, get_random_position(), &asset_server);
-    spawn_fox(&mut commands, get_random_position(), &asset_server);
-    spawn_walnut(&mut commands, get_random_position(), &asset_server);
+    for _ in 0..INITIAL_BEAR_NUM {
+        spawn_bear(&mut commands, get_random_position(), &asset_server);
+    }
+    for _ in 0..INITIAL_FOX_NUM {
+        spawn_fox(&mut commands, get_random_position(), &asset_server);
+    }
+    for _ in 0..INITIAL_WALNUT_NUM {
+        spawn_walnut(&mut commands, get_random_position(), &asset_server);
+    }
     spawn_text(
         &mut commands,
         Position { x: 10, y: 10 },
