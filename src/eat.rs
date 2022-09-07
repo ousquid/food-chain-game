@@ -82,16 +82,22 @@ fn eaten_walnut(
 }
 
 fn eat_walnut(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<WalnutEater>, Without<Walnut>)>,
+    mut eater_query: Query<
+        (Entity, &Position, &mut HP, &mut Satiety),
+        (With<WalnutEater>, Without<Walnut>),
+    >,
     walnut_query: Query<(Entity, &Position, &HP), With<Walnut>>,
 ) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        walnut_query.iter().for_each(|(_, w_pos, _)| {
-            if e_pos == w_pos {
-                e_hp.val += HEALING_HP_WALNUT;
-            }
+    eater_query
+        .iter_mut()
+        .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
+            walnut_query.iter().for_each(|(_, w_pos, _)| {
+                if e_pos == w_pos {
+                    e_hp.val += HEALING_HP_WALNUT;
+                    e_sat.val += HEALING_SATIETY_WALNUT;
+                }
+            })
         })
-    })
 }
 
 fn eaten_fox(
@@ -108,16 +114,22 @@ fn eaten_fox(
 }
 
 fn eat_fox(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<FoxEater>, Without<Fox>)>,
+    mut eater_query: Query<
+        (Entity, &Position, &mut HP, &mut Satiety),
+        (With<FoxEater>, Without<Fox>),
+    >,
     fox_query: Query<(Entity, &Position, &HP), With<Fox>>,
 ) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        fox_query.iter().for_each(|(_, f_pos, _)| {
-            if e_pos == f_pos {
-                e_hp.val += HEALING_HP_FOX;
-            }
+    eater_query
+        .iter_mut()
+        .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
+            fox_query.iter().for_each(|(_, f_pos, _)| {
+                if e_pos == f_pos {
+                    e_hp.val += HEALING_HP_FOX;
+                    e_sat.val += HEALING_SATIETY_FOX;
+                }
+            })
         })
-    })
 }
 
 fn eaten_bear(
@@ -134,16 +146,22 @@ fn eaten_bear(
 }
 
 fn eat_bear(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<BearEater>, Without<Bear>)>,
+    mut eater_query: Query<
+        (Entity, &Position, &mut HP, &mut Satiety),
+        (With<BearEater>, Without<Bear>),
+    >,
     bear_query: Query<(Entity, &Position, &HP), With<Bear>>,
 ) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        bear_query.iter().for_each(|(_, b_pos, b_hp)| {
-            if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
-                e_hp.val += HEALING_HP_BEAR;
-            }
+    eater_query
+        .iter_mut()
+        .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
+            bear_query.iter().for_each(|(_, b_pos, b_hp)| {
+                if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
+                    e_hp.val += HEALING_HP_BEAR;
+                    e_sat.val += HEALING_SATIETY_BEAR
+                }
+            })
         })
-    })
 }
 
 fn eaten_human(
@@ -160,14 +178,20 @@ fn eaten_human(
 }
 
 fn eat_human(
-    mut eater_query: Query<(Entity, &Position, &mut HP), (With<HumanEater>, Without<Human>)>,
+    mut eater_query: Query<
+        (Entity, &Position, &mut HP, &mut Satiety),
+        (With<HumanEater>, Without<Human>),
+    >,
     human_query: Query<(Entity, &Position, &HP), With<Human>>,
 ) {
-    eater_query.iter_mut().for_each(|(_, e_pos, mut e_hp)| {
-        human_query.iter().for_each(|(_, h_pos, h_hp)| {
-            if h_pos == e_pos && e_hp.val > e_hp.max * WEAK_HP_RATIO {
-                e_hp.val += HEALING_HP_HUMAN;
-            }
+    eater_query
+        .iter_mut()
+        .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
+            human_query.iter().for_each(|(_, h_pos, h_hp)| {
+                if h_pos == e_pos && e_hp.val > e_hp.max * WEAK_HP_RATIO {
+                    e_hp.val += HEALING_HP_HUMAN;
+                    e_sat.val += HEALING_SATIETY_HUMAN;
+                }
+            })
         })
-    })
 }

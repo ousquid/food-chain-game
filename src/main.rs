@@ -136,13 +136,15 @@ fn main() {
         .add_system(move_player)
         .add_system(move_fox)
         .add_system(move_bear)
-        .add_system(increase_walnut.before("transform"))
+        .add_system(increase_bear)
+        .add_system(increase_fox)
+        .add_system(increase_walnut)
         .add_system(text_value)
         .add_system(game_timer)
         .add_system(goal)
         .add_system(despawn_hp_text)
         .add_system(spawn_all_hp_text)
-        .add_system(position_transform.label("transform"))
+        .add_system(position_transform)
         .add_system(despawn.after("eaten"))
         .run();
 }
@@ -298,7 +300,8 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(BearEater)
         .insert(position)
         .insert(Stamina::human())
-        .insert(HP::human());
+        .insert(HP::human())
+        .insert(Satiety::human());
 }
 
 fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -322,7 +325,8 @@ fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<As
         .insert(HumanEater)
         .insert(position)
         .insert(Stamina::bear())
-        .insert(HP::bear());
+        .insert(HP::bear())
+        .insert(Satiety::bear());
 }
 
 fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -344,7 +348,8 @@ fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<Ass
         .insert(WalnutEater)
         .insert(position)
         .insert(Stamina::fox())
-        .insert(HP::fox());
+        .insert(HP::fox())
+        .insert(Satiety::fox());
 }
 
 fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -369,7 +374,8 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(Walnut)
         .insert(position)
         .insert(Stamina::walnut())
-        .insert(HP::walnut());
+        .insert(HP::walnut())
+        .insert(Satiety::walnut());
 }
 
 fn increase_walnut(
@@ -395,6 +401,56 @@ fn increase_walnut(
             }
         }
     });
+}
+
+fn increase_fox(
+    mut commands: Commands,
+    timer: ResMut<GameTimer>,
+    mut fox_query: Query<(&Position, &mut Satiety), With<Fox>>,
+    field_query: Query<&Position, With<Field>>,
+    asset_server: Res<AssetServer>,
+) {
+    if !timer.0.finished() {
+        return;
+    }
+    fox_query.iter_mut().for_each(|(position, mut satiety)| {
+        if satiety.val >= satiety.max {
+            satiety.val -= satiety.max;
+            let offset = get_increase_pos(&position, 2);
+            let new_pos = Position {
+                x: position.x + offset.x,
+                y: position.y + offset.y,
+            };
+            if reachable(&field_query, new_pos.x, new_pos.y) {
+                spawn_fox(&mut commands, new_pos, &asset_server);
+            }
+        }
+    })
+}
+
+fn increase_bear(
+    mut commands: Commands,
+    timer: ResMut<GameTimer>,
+    mut bear_query: Query<(&Position, &mut Satiety), With<Bear>>,
+    field_query: Query<&Position, With<Field>>,
+    asset_server: Res<AssetServer>,
+) {
+    if !timer.0.finished() {
+        return;
+    }
+    bear_query.iter_mut().for_each(|(position, mut satiety)| {
+        if satiety.val >= satiety.max {
+            satiety.val -= satiety.max;
+            let offset = get_increase_pos(&position, 2);
+            let new_pos = Position {
+                x: position.x + offset.x,
+                y: position.y + offset.y,
+            };
+            if reachable(&field_query, new_pos.x, new_pos.y) {
+                spawn_bear(&mut commands, new_pos, &asset_server);
+            }
+        }
+    })
 }
 
 fn reachable(field_query: &Query<&Position, With<Field>>, x: i32, y: i32) -> bool {
