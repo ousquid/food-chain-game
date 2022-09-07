@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use std::f32::INFINITY;
 
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Position {
@@ -38,4 +39,49 @@ pub struct HpText;
 #[derive(Component)]
 pub struct Counter {
     pub val: i32,
+}
+
+#[derive(Component)]
+pub struct HP {
+    pub val: f32,
+    pub max: f32,
+}
+
+const MAX_HP_HUMAN: f32 = 60.0;
+const MAX_HP_BEAR: f32 = 300.0;
+const MAX_HP_FOX: f32 = 30.0;
+const MAX_HP_WALNUT: f32 = INFINITY;
+
+pub const HEALING_HP_HUMAN: f32 = 30.0;
+pub const HEALING_HP_BEAR: f32 = 60.0;
+pub const HEALING_HP_FOX: f32 = 10.0;
+pub const HEALING_HP_WALNUT: f32 = 5.0;
+
+pub const WEAK_HP_RATIO: f32 = 0.9;
+
+impl HP {
+    pub fn human() -> HP {
+        return HP {
+            max: MAX_HP_HUMAN,
+            val: MAX_HP_HUMAN,
+        };
+    }
+    pub fn bear() -> HP {
+        return HP {
+            max: MAX_HP_BEAR,
+            val: MAX_HP_BEAR,
+        };
+    }
+    pub fn fox() -> HP {
+        return HP {
+            max: MAX_HP_FOX,
+            val: MAX_HP_FOX,
+        };
+    }
+    pub fn walnut() -> HP {
+        return HP {
+            max: MAX_HP_WALNUT,
+            val: MAX_HP_WALNUT,
+        };
+    }
 }

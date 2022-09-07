@@ -1,7 +1,6 @@
 use crate::components::*;
 
 use bevy::prelude::*;
-use std::f32::INFINITY;
 
 use bevy::ecs::*;
 use bevy::prelude::*;
@@ -11,23 +10,6 @@ use bevy_prototype_lyon::prelude::*;
 pub struct HpPlugin;
 struct StomachTimer(Timer);
 
-#[derive(Component)]
-pub struct HP {
-    pub val: f32,
-    pub max: f32,
-}
-
-const MAX_HP_HUMAN: f32 = 60.0;
-const MAX_HP_BEAR: f32 = 300.0;
-const MAX_HP_FOX: f32 = 30.0;
-const MAX_HP_WALNUT: f32 = INFINITY;
-
-const HEALING_HP_HUMAN: f32 = 30.0;
-const HEALING_HP_BEAR: f32 = 60.0;
-const HEALING_HP_FOX: f32 = 10.0;
-const HEALING_HP_WALNUT: f32 = 5.0;
-
-const WEAK_HP_RATIO: f32 = 0.9;
 /// 自作の Plugin に Plugin トレイトを実装すれば、Plugin として使用できる
 /// Plugin トレイトでは App Builder に必要な要素を追加するだけで良い
 impl Plugin for HpPlugin {
@@ -55,33 +37,6 @@ impl Plugin for HpPlugin {
                 .with_system(eaten_bear)
                 .with_system(eaten_human),
         );
-    }
-}
-
-impl HP {
-    pub fn human() -> HP {
-        return HP {
-            max: MAX_HP_HUMAN,
-            val: MAX_HP_HUMAN,
-        };
-    }
-    pub fn bear() -> HP {
-        return HP {
-            max: MAX_HP_BEAR,
-            val: MAX_HP_BEAR,
-        };
-    }
-    pub fn fox() -> HP {
-        return HP {
-            max: MAX_HP_FOX,
-            val: MAX_HP_FOX,
-        };
-    }
-    pub fn walnut() -> HP {
-        return HP {
-            max: MAX_HP_WALNUT,
-            val: MAX_HP_WALNUT,
-        };
     }
 }
 

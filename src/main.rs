@@ -1,7 +1,7 @@
 pub mod components;
-pub mod hp;
+pub mod eat;
 use crate::components::*;
-use crate::hp::*;
+use crate::eat::*;
 
 use bevy::ecs::*;
 use bevy::prelude::*;
