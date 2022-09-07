@@ -24,11 +24,60 @@ const INITIAL_BEAR_NUM: u32 = 5;
 const INITIAL_FOX_NUM: u32 = 8;
 const INITIAL_WALNUT_NUM: u32 = 10;
 
-const HEALING_STAMINA_HUMAN: i32 = 10;
+const HEALING_STAMINA_HUMAN: i32 = 30;
 const HEALING_STAMINA_BEAR: i32 = 8;
 const HEALING_STAMINA_FOX: i32 = 5;
 const HEALING_STAMINA_WALNUT: i32 = 0;
 const MAX_STAMINA: i32 = 100;
+
+const HEALING_STAMINA_SHIP: i32 = 60;
+const SHIP_MOVING: [Position; 45] = [
+    Position::right(),
+    Position::right(),
+    Position::right(),
+    Position::right(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::down(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::up(),
+    Position::left(),
+    Position::left(),
+    Position::left(),
+    Position::left(),
+    Position::stay(),
+    Position::stay(),
+    Position::stay(),
+    Position::stay(),
+    Position::stay(),
+];
 
 #[derive(Component)]
 struct State {
@@ -79,6 +128,12 @@ impl Stamina {
     fn walnut() -> Stamina {
         Stamina {
             healing_val: HEALING_STAMINA_WALNUT,
+            val: 0,
+        }
+    }
+    fn ship() -> Stamina {
+        Stamina {
+            healing_val: HEALING_STAMINA_SHIP,
             val: 0,
         }
     }
@@ -136,6 +191,7 @@ fn main() {
         .add_system(move_player)
         .add_system(move_fox)
         .add_system(move_bear)
+        .add_system(move_ship)
         .add_system(increase_bear)
         .add_system(increase_fox)
         .add_system(increase_walnut)
@@ -164,6 +220,13 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         }
     }
     spawn_terminal(
+        &mut commands,
+        Position {
+            x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1,
+            y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1,
+        },
+    );
+    spawn_ship(
         &mut commands,
         Position {
             x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1,
@@ -269,13 +332,33 @@ fn spawn_terminal(commands: &mut Commands, position: Position) {
         .spawn_bundle(GeometryBuilder::build_as(
             &shape,
             DrawMode::Outlined {
-                fill_mode: FillMode::color(Color::GRAY),
+                fill_mode: FillMode::color(Color::rgb(0.7, 0.7, 1.0)),
                 outline_mode: StrokeMode::new(Color::BLACK, 0.0),
             },
             Transform::default(),
         ))
         .insert(position)
         .insert(Terminal);
+}
+
+fn spawn_ship(commands: &mut Commands, position: Position) {
+    let shape = shapes::Rectangle {
+        extents: Vec2::new(UNIT_WIDTH as f32, UNIT_HEIGHT as f32),
+        ..shapes::Rectangle::default()
+    };
+
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::WHITE),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(position)
+        .insert(Ship { index: 0 })
+        .insert(Stamina::ship());
 }
 
 fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -539,29 +622,29 @@ fn move_player(
         })
 }
 
-fn heal(timer: ResMut<GameTimer>, mut food_query: Query<&mut Stamina>) {
+fn heal(timer: ResMut<GameTimer>, mut query: Query<&mut Stamina>) {
     if !timer.0.finished() {
         return;
     }
 
-    food_query
-        .iter_mut()
-        .for_each(|mut stamina| stamina.cool_down())
+    query.iter_mut().for_each(|mut stamina| stamina.cool_down())
 }
 
 fn goal(
-    player_query: Query<&Position, With<Player>>,
-    terminal_query: Query<&Position, With<Terminal>>,
+    mut commands: Commands,
+    player_query: Query<(Entity, &Position), With<Player>>,
+    ship_query: Query<&Position, With<Ship>>,
     mut state_query: Query<&mut State>,
 ) {
-    player_query.iter().for_each(|pos_player| {
-        if terminal_query
+    player_query.iter().for_each(|(player, pos_player)| {
+        if ship_query
             .iter()
-            .any(|pos_field| pos_player.x == pos_field.x && pos_player.y == pos_field.y)
+            .any(|pos_ship| pos_player.x == pos_ship.x && pos_player.y == pos_ship.y)
         {
             state_query.iter_mut().for_each(|mut state| {
                 state.kind = StateKind::GameClear;
             });
+            commands.entity(player).despawn();
         }
     })
 }
@@ -626,4 +709,25 @@ fn despawn(mut commands: Commands, mut food_query: Query<(Entity, &HP)>) {
             commands.entity(entity).despawn();
         }
     })
+}
+
+fn move_ship(
+    timer: ResMut<GameTimer>,
+    mut ship_query: Query<(&mut Ship, &mut Position, &Stamina)>,
+) {
+    if !timer.0.finished() {
+        return;
+    }
+
+    ship_query
+        .iter_mut()
+        .for_each(|(mut ship, mut pos, stamina)| {
+            if stamina.can_move() {
+                let offset = SHIP_MOVING[ship.index];
+
+                pos.x += offset.x;
+                pos.y += offset.y;
+                ship.index = (ship.index + 1) % SHIP_MOVING.len()
+            }
+        })
 }

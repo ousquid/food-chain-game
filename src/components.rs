@@ -6,6 +6,24 @@ pub struct Position {
     pub x: i32,
     pub y: i32,
 }
+
+impl Position {
+    pub const fn up() -> Position {
+        Position { x: 0, y: 1 }
+    }
+    pub const fn down() -> Position {
+        Position { x: 0, y: -1 }
+    }
+    pub const fn left() -> Position {
+        Position { x: -1, y: 0 }
+    }
+    pub const fn right() -> Position {
+        Position { x: 1, y: 0 }
+    }
+    pub const fn stay() -> Position {
+        Position { x: 0, y: 0 }
+    }
+}
 pub struct GameTimer(Timer);
 
 #[derive(Component)]
@@ -32,6 +50,10 @@ pub struct HumanEater;
 pub struct Field;
 #[derive(Component)]
 pub struct Terminal;
+#[derive(Component)]
+pub struct Ship {
+    pub index: usize,
+}
 
 #[derive(Component)]
 pub struct HpText;
