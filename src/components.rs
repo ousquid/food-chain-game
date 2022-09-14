@@ -31,7 +31,7 @@ pub struct Player;
 #[derive(Component)]
 pub struct Human;
 #[derive(Component)]
-pub struct Bear;
+pub struct StrongBear;
 #[derive(Component)]
 pub struct Fox;
 #[derive(Component)]
@@ -42,7 +42,7 @@ pub struct WalnutEater;
 #[derive(Component)]
 pub struct FoxEater;
 #[derive(Component)]
-pub struct BearEater;
+pub struct StrongBearEater;
 #[derive(Component)]
 pub struct HumanEater;
 
@@ -94,7 +94,7 @@ impl HP {
             val: MAX_HP_HUMAN,
         };
     }
-    pub fn bear() -> HP {
+    pub fn strong_bear() -> HP {
         return HP {
             max: MAX_HP_BEAR,
             val: MAX_HP_BEAR,
@@ -131,7 +131,7 @@ impl Satiety {
             val: 0.0,
         };
     }
-    pub fn bear() -> Satiety {
+    pub fn strong_bear() -> Satiety {
         return Satiety {
             max: MAX_SATIETY_BEAR,
             val: 0.0,

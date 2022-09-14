@@ -25,7 +25,7 @@ impl Plugin for HpPlugin {
                 .label("eat")
                 .with_system(eat_walnut)
                 .with_system(eat_fox)
-                .with_system(eat_bear)
+                .with_system(eat_strong_bear)
                 .with_system(eat_human),
         )
         .add_system_set(
@@ -34,7 +34,7 @@ impl Plugin for HpPlugin {
                 .label("eaten")
                 .with_system(eaten_walnut)
                 .with_system(eaten_fox)
-                .with_system(eaten_bear)
+                .with_system(eaten_strong_bear)
                 .with_system(eaten_human),
         );
     }
@@ -43,8 +43,8 @@ impl Plugin for HpPlugin {
 /*
  * Walnut: すでにあるWalnutの付近にランダム生成。死なない。
  * Fox   : Walnut食べないと死ぬ。Walnut食べてたら増える。
- * Bear  : Fox or Walnut or Player食べないと死ぬ。Fox or Walnut食べてたら増える。
- * Player: Walnut or Fox or Bear食べないと死ぬ。Bearを食べないと生態系が崩れる仕様。
+ * StrongBear  : Fox or Walnut or Player食べないと死ぬ。Fox or Walnut食べてたら増える。
+ * Player: Walnut or Fox or StrongBear食べないと死ぬ。StrongBearを食べないと生態系が崩れる仕様。
  *
  * 寿命
  * Ship: 5分に1回来る。30秒ぐらい滞在
@@ -132,30 +132,35 @@ fn eat_fox(
         })
 }
 
-fn eaten_bear(
-    eater_query: Query<(Entity, &Position, &HP), With<BearEater>>,
-    mut bear_query: Query<(Entity, &Position, &mut HP), (With<Bear>, Without<BearEater>)>,
+fn eaten_strong_bear(
+    eater_query: Query<(Entity, &Position, &HP), With<StrongBearEater>>,
+    mut strong_bear_query: Query<
+        (Entity, &Position, &mut HP),
+        (With<StrongBear>, Without<StrongBearEater>),
+    >,
 ) {
-    bear_query.iter_mut().for_each(|(_, b_pos, mut b_hp)| {
-        eater_query.iter().for_each(|(_, e_pos, _)| {
-            if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
-                b_hp.val = 0.0;
-            }
+    strong_bear_query
+        .iter_mut()
+        .for_each(|(_, b_pos, mut b_hp)| {
+            eater_query.iter().for_each(|(_, e_pos, _)| {
+                if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
+                    b_hp.val = 0.0;
+                }
+            });
         });
-    });
 }
 
-fn eat_bear(
+fn eat_strong_bear(
     mut eater_query: Query<
         (Entity, &Position, &mut HP, &mut Satiety),
-        (With<BearEater>, Without<Bear>),
+        (With<StrongBearEater>, Without<StrongBear>),
     >,
-    bear_query: Query<(Entity, &Position, &HP), With<Bear>>,
+    strong_bear_query: Query<(Entity, &Position, &HP), With<StrongBear>>,
 ) {
     eater_query
         .iter_mut()
         .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
-            bear_query.iter().for_each(|(_, b_pos, b_hp)| {
+            strong_bear_query.iter().for_each(|(_, b_pos, b_hp)| {
                 if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
                     e_hp.val += HEALING_HP_BEAR;
                     e_sat.val += HEALING_SATIETY_BEAR

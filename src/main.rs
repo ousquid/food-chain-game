@@ -113,7 +113,7 @@ impl Stamina {
             val: 0,
         }
     }
-    fn bear() -> Stamina {
+    fn strong_bear() -> Stamina {
         Stamina {
             healing_val: HEALING_STAMINA_BEAR,
             val: 0,
@@ -190,9 +190,9 @@ fn main() {
         .add_system(heal)
         .add_system(move_player)
         .add_system(move_fox)
-        .add_system(move_bear)
+        .add_system(move_strong_bear)
         .add_system(move_ship)
-        .add_system(increase_bear)
+        .add_system(increase_strong_bear)
         .add_system(increase_fox)
         .add_system(increase_walnut)
         .add_system(text_value)
@@ -235,7 +235,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     );
     spawn_player(&mut commands, Position { x: 4, y: 6 }, &asset_server);
     for _ in 0..INITIAL_BEAR_NUM {
-        spawn_bear(&mut commands, get_random_position(), &asset_server);
+        spawn_strong_bear(&mut commands, get_random_position(), &asset_server);
     }
     for _ in 0..INITIAL_FOX_NUM {
         spawn_fox(&mut commands, get_random_position(), &asset_server);
@@ -380,14 +380,14 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(Human)
         .insert(WalnutEater)
         .insert(FoxEater)
-        .insert(BearEater)
+        .insert(StrongBearEater)
         .insert(position)
         .insert(Stamina::human())
         .insert(HP::human())
         .insert(Satiety::human());
 }
 
-fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
+fn spawn_strong_bear(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
     let shape = shapes::Circle {
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
@@ -402,14 +402,14 @@ fn spawn_bear(commands: &mut Commands, position: Position, asset_server: &Res<As
             },
             Transform::default(),
         ))
-        .insert(Bear)
+        .insert(StrongBear)
         .insert(WalnutEater)
         .insert(FoxEater)
         .insert(HumanEater)
         .insert(position)
-        .insert(Stamina::bear())
-        .insert(HP::bear())
-        .insert(Satiety::bear());
+        .insert(Stamina::strong_bear())
+        .insert(HP::strong_bear())
+        .insert(Satiety::strong_bear());
 }
 
 fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -511,29 +511,31 @@ fn increase_fox(
     })
 }
 
-fn increase_bear(
+fn increase_strong_bear(
     mut commands: Commands,
     timer: ResMut<GameTimer>,
-    mut bear_query: Query<(&Position, &mut Satiety), With<Bear>>,
+    mut strong_bear_query: Query<(&Position, &mut Satiety), With<StrongBear>>,
     field_query: Query<&Position, With<Field>>,
     asset_server: Res<AssetServer>,
 ) {
     if !timer.0.finished() {
         return;
     }
-    bear_query.iter_mut().for_each(|(position, mut satiety)| {
-        if satiety.val >= satiety.max {
-            satiety.val -= satiety.max;
-            let offset = get_increase_pos(&position, 2);
-            let new_pos = Position {
-                x: position.x + offset.x,
-                y: position.y + offset.y,
-            };
-            if reachable(&field_query, new_pos.x, new_pos.y) {
-                spawn_bear(&mut commands, new_pos, &asset_server);
+    strong_bear_query
+        .iter_mut()
+        .for_each(|(position, mut satiety)| {
+            if satiety.val >= satiety.max {
+                satiety.val -= satiety.max;
+                let offset = get_increase_pos(&position, 2);
+                let new_pos = Position {
+                    x: position.x + offset.x,
+                    y: position.y + offset.y,
+                };
+                if reachable(&field_query, new_pos.x, new_pos.y) {
+                    spawn_strong_bear(&mut commands, new_pos, &asset_server);
+                }
             }
-        }
-    })
+        })
 }
 
 fn reachable(field_query: &Query<&Position, With<Field>>, x: i32, y: i32) -> bool {
@@ -562,22 +564,26 @@ fn move_fox(
     })
 }
 
-fn move_bear(
+fn move_strong_bear(
     timer: ResMut<GameTimer>,
     field_query: Query<&Position, With<Field>>,
-    mut bear_query: Query<(&mut Position, &mut Stamina), (With<Bear>, Without<Field>)>,
+    mut strong_bear_query: Query<(&mut Position, &mut Stamina), (With<StrongBear>, Without<Field>)>,
 ) {
     if !timer.0.finished() {
         return;
     }
-    bear_query
+    strong_bear_query
         .iter_mut()
-        .for_each(|(mut pos_bear, mut stamina)| {
+        .for_each(|(mut pos_strong_bear, mut stamina)| {
             let dir = get_random_direction();
             if stamina.can_move() {
-                if reachable(&field_query, pos_bear.x + dir.x, pos_bear.y + dir.y) {
-                    pos_bear.x += dir.x;
-                    pos_bear.y += dir.y;
+                if reachable(
+                    &field_query,
+                    pos_strong_bear.x + dir.x,
+                    pos_strong_bear.y + dir.y,
+                ) {
+                    pos_strong_bear.x += dir.x;
+                    pos_strong_bear.y += dir.y;
                     stamina.val = 0
                 }
             }
