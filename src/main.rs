@@ -27,7 +27,7 @@ const INITIAL_WALNUT_NUM: u32 = 10;
 const HEALING_STAMINA_HUMAN: i32 = 30;
 const HEALING_STAMINA_STRONG_BEAR: i32 = 8;
 const HEALING_STAMINA_WEAK_BEAR: i32 = 8;
-const HEALING_STAMINA_FOX: i32 = 5;
+const HEALING_STAMINA_FOX: i32 = 10;
 const HEALING_STAMINA_WALNUT: i32 = 0;
 const MAX_STAMINA: i32 = 100;
 
@@ -396,6 +396,7 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(WalnutEater)
         .insert(FoxEater)
         .insert(WeakBearEater)
+        .insert(StrongBearPrey)
         .insert(position)
         .insert(Stamina::human())
         .insert(HP::human())
@@ -455,6 +456,7 @@ fn spawn_weak_bear(
         .insert(WeakBear)
         .insert(WalnutEater)
         .insert(FoxEater)
+        .insert(HumanPrey)
         .insert(position)
         .insert(Stamina::weak_bear())
         .insert(HP::bear(hp))
@@ -478,6 +480,9 @@ fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<Ass
         ))
         .insert(Fox)
         .insert(WalnutEater)
+        .insert(StrongBearPrey)
+        .insert(WeakBearPrey)
+        .insert(HumanPrey)
         .insert(position)
         .insert(Stamina::fox())
         .insert(HP::fox())
@@ -504,6 +509,10 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
             },
         ))
         .insert(Walnut)
+        .insert(StrongBearPrey)
+        .insert(WeakBearPrey)
+        .insert(HumanPrey)
+        .insert(FoxPrey)
         .insert(position)
         .insert(Stamina::walnut())
         .insert(HP::walnut())
@@ -593,20 +602,42 @@ fn reachable(field_query: &Query<&Position, With<Field>>, x: i32, y: i32) -> boo
         .any(|pos_field| x == pos_field.x && y == pos_field.y)
 }
 
+fn distance(pos1: &Position, pos2: &Position) -> i32 {
+    (pos1.x - pos2.x).abs() + (pos1.y - pos2.y).abs()
+}
 fn move_fox(
     timer: ResMut<GameTimer>,
     field_query: Query<&Position, With<Field>>,
-    mut fox_query: Query<(&mut Position, &mut Stamina), (With<Fox>, Without<Field>)>,
+    mut fox_query: Query<
+        (&mut Position, &mut Stamina),
+        (With<Fox>, Without<Field>, Without<FoxPrey>),
+    >,
+    prey_query: Query<&Position, With<FoxPrey>>,
 ) {
     if !timer.0.finished() {
         return;
     }
     fox_query.iter_mut().for_each(|(mut pos_fox, mut stamina)| {
-        let dir = get_random_direction();
+        let neighbor = prey_query
+            .iter()
+            .min_by_key(|pos| distance(&pos_fox, pos))
+            .unwrap_or(&Position { x: 0, y: 0 });
+
         if stamina.can_move() {
-            if reachable(&field_query, pos_fox.x + dir.x, pos_fox.y + dir.y) {
-                pos_fox.x += dir.x;
-                pos_fox.y += dir.y;
+            let new_positions = [
+                Position { x: 1, y: 0 },
+                Position { x: -1, y: 0 },
+                Position { x: 0, y: 1 },
+                Position { x: 0, y: -1 },
+            ]
+            .iter()
+            .map(|pos| pos_fox.as_ref() + pos);
+            let decided_pos = new_positions
+                .filter(|pos| reachable(&field_query, pos.x, pos.y))
+                .min_by_key(|pos| distance(pos, neighbor));
+            if let Some(pos) = decided_pos {
+                pos_fox.x = pos.x;
+                pos_fox.y = pos.y;
                 stamina.val = 0
             }
         }

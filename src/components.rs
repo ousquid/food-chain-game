@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use std::f32::INFINITY;
+use std::ops;
 
 #[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Position {
@@ -22,6 +23,16 @@ impl Position {
     }
     pub const fn stay() -> Position {
         Position { x: 0, y: 0 }
+    }
+}
+
+impl<'a, 'b> ops::Add<&'b Position> for &'a Position {
+    type Output = Position;
+    fn add(self, rhs: &'b Position) -> Position {
+        Position {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
     }
 }
 pub struct GameTimer(Timer);
@@ -49,6 +60,17 @@ pub struct StrongBearEater;
 pub struct WeakBearEater;
 #[derive(Component)]
 pub struct HumanEater;
+
+#[derive(Component)]
+pub struct WalnutPrey;
+#[derive(Component)]
+pub struct FoxPrey;
+#[derive(Component)]
+pub struct StrongBearPrey;
+#[derive(Component)]
+pub struct WeakBearPrey;
+#[derive(Component)]
+pub struct HumanPrey;
 
 #[derive(Component)]
 pub struct Field;
@@ -81,7 +103,7 @@ pub struct Satiety {
 
 const MAX_HP_HUMAN: f32 = 60.0;
 pub const MAX_HP_BEAR: f32 = 300.0;
-const MAX_HP_FOX: f32 = 30.0;
+const MAX_HP_FOX: f32 = 50.0;
 const MAX_HP_WALNUT: f32 = INFINITY;
 pub const WEAK_BEAR_HP_THRESHOLD: f32 = 270.0;
 
