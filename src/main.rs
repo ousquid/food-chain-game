@@ -25,7 +25,8 @@ const INITIAL_FOX_NUM: u32 = 8;
 const INITIAL_WALNUT_NUM: u32 = 10;
 
 const HEALING_STAMINA_HUMAN: i32 = 30;
-const HEALING_STAMINA_BEAR: i32 = 8;
+const HEALING_STAMINA_STRONG_BEAR: i32 = 8;
+const HEALING_STAMINA_WEAK_BEAR: i32 = 8;
 const HEALING_STAMINA_FOX: i32 = 5;
 const HEALING_STAMINA_WALNUT: i32 = 0;
 const MAX_STAMINA: i32 = 100;
@@ -115,7 +116,13 @@ impl Stamina {
     }
     fn strong_bear() -> Stamina {
         Stamina {
-            healing_val: HEALING_STAMINA_BEAR,
+            healing_val: HEALING_STAMINA_STRONG_BEAR,
+            val: 0,
+        }
+    }
+    fn weak_bear() -> Stamina {
+        Stamina {
+            healing_val: HEALING_STAMINA_WEAK_BEAR,
             val: 0,
         }
     }
@@ -191,6 +198,7 @@ fn main() {
         .add_system(move_player)
         .add_system(move_fox)
         .add_system(move_strong_bear)
+        .add_system(move_weak_bear)
         .add_system(move_ship)
         .add_system(increase_strong_bear)
         .add_system(increase_fox)
@@ -201,6 +209,8 @@ fn main() {
         .add_system(despawn_hp_text)
         .add_system(spawn_all_hp_text)
         .add_system(position_transform)
+        .add_system(strengthen_bear)
+        .add_system(weaken_bear)
         .add_system(despawn.after("eaten"))
         .run();
 }
@@ -235,7 +245,12 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     );
     spawn_player(&mut commands, Position { x: 4, y: 6 }, &asset_server);
     for _ in 0..INITIAL_BEAR_NUM {
-        spawn_strong_bear(&mut commands, get_random_position(), &asset_server);
+        spawn_strong_bear(
+            &mut commands,
+            get_random_position(),
+            &asset_server,
+            MAX_HP_BEAR,
+        );
     }
     for _ in 0..INITIAL_FOX_NUM {
         spawn_fox(&mut commands, get_random_position(), &asset_server);
@@ -380,14 +395,19 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         .insert(Human)
         .insert(WalnutEater)
         .insert(FoxEater)
-        .insert(StrongBearEater)
+        .insert(WeakBearEater)
         .insert(position)
         .insert(Stamina::human())
         .insert(HP::human())
         .insert(Satiety::human());
 }
 
-fn spawn_strong_bear(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
+fn spawn_strong_bear(
+    commands: &mut Commands,
+    position: Position,
+    asset_server: &Res<AssetServer>,
+    hp: f32,
+) {
     let shape = shapes::Circle {
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
@@ -408,8 +428,37 @@ fn spawn_strong_bear(commands: &mut Commands, position: Position, asset_server: 
         .insert(HumanEater)
         .insert(position)
         .insert(Stamina::strong_bear())
-        .insert(HP::strong_bear())
+        .insert(HP::bear(hp))
         .insert(Satiety::strong_bear());
+}
+
+fn spawn_weak_bear(
+    commands: &mut Commands,
+    position: Position,
+    asset_server: &Res<AssetServer>,
+    hp: f32,
+) {
+    let shape = shapes::Circle {
+        radius: (UNIT_WIDTH / 2) as f32,
+        center: Vec2::new(0.0, 0.0),
+    };
+
+    commands
+        .spawn_bundle(GeometryBuilder::build_as(
+            &shape,
+            DrawMode::Outlined {
+                fill_mode: FillMode::color(Color::rgb_u8(148, 115, 255)),
+                outline_mode: StrokeMode::new(Color::BLACK, 0.0),
+            },
+            Transform::default(),
+        ))
+        .insert(WeakBear)
+        .insert(WalnutEater)
+        .insert(FoxEater)
+        .insert(position)
+        .insert(Stamina::weak_bear())
+        .insert(HP::bear(hp))
+        .insert(Satiety::weak_bear());
 }
 
 fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -532,7 +581,7 @@ fn increase_strong_bear(
                     y: position.y + offset.y,
                 };
                 if reachable(&field_query, new_pos.x, new_pos.y) {
-                    spawn_strong_bear(&mut commands, new_pos, &asset_server);
+                    spawn_strong_bear(&mut commands, new_pos, &asset_server, MAX_HP_BEAR);
                 }
             }
         })
@@ -584,6 +633,32 @@ fn move_strong_bear(
                 ) {
                     pos_strong_bear.x += dir.x;
                     pos_strong_bear.y += dir.y;
+                    stamina.val = 0
+                }
+            }
+        })
+}
+
+fn move_weak_bear(
+    timer: ResMut<GameTimer>,
+    field_query: Query<&Position, With<Field>>,
+    mut weak_bear_query: Query<(&mut Position, &mut Stamina), (With<WeakBear>, Without<Field>)>,
+) {
+    if !timer.0.finished() {
+        return;
+    }
+    weak_bear_query
+        .iter_mut()
+        .for_each(|(mut pos_weak_bear, mut stamina)| {
+            let dir = get_random_direction();
+            if stamina.can_move() {
+                if reachable(
+                    &field_query,
+                    pos_weak_bear.x + dir.x,
+                    pos_weak_bear.y + dir.y,
+                ) {
+                    pos_weak_bear.x += dir.x;
+                    pos_weak_bear.y += dir.y;
                     stamina.val = 0
                 }
             }
@@ -736,4 +811,32 @@ fn move_ship(
                 ship.index = (ship.index + 1) % SHIP_MOVING.len()
             }
         })
+}
+
+fn strengthen_bear(
+    mut commands: Commands,
+    mut strong_bear_query: Query<(Entity, &Position, &HP), With<StrongBear>>,
+    asset_server: Res<AssetServer>,
+) {
+    strong_bear_query
+        .iter_mut()
+        .for_each(|(strong_bear, pos, hp)| {
+            if hp.val <= WEAK_BEAR_HP_THRESHOLD {
+                commands.entity(strong_bear).despawn();
+                spawn_weak_bear(&mut commands, *pos, &asset_server, hp.val);
+            }
+        });
+}
+
+fn weaken_bear(
+    mut commands: Commands,
+    mut weak_bear_query: Query<(Entity, &Position, &HP), With<WeakBear>>,
+    asset_server: Res<AssetServer>,
+) {
+    weak_bear_query.iter_mut().for_each(|(weak_bear, pos, hp)| {
+        if hp.val > WEAK_BEAR_HP_THRESHOLD {
+            commands.entity(weak_bear).despawn();
+            spawn_strong_bear(&mut commands, *pos, &asset_server, hp.val);
+        }
+    });
 }

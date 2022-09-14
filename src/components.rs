@@ -33,6 +33,8 @@ pub struct Human;
 #[derive(Component)]
 pub struct StrongBear;
 #[derive(Component)]
+pub struct WeakBear;
+#[derive(Component)]
 pub struct Fox;
 #[derive(Component)]
 pub struct Walnut;
@@ -43,6 +45,8 @@ pub struct WalnutEater;
 pub struct FoxEater;
 #[derive(Component)]
 pub struct StrongBearEater;
+#[derive(Component)]
+pub struct WeakBearEater;
 #[derive(Component)]
 pub struct HumanEater;
 
@@ -76,16 +80,15 @@ pub struct Satiety {
 }
 
 const MAX_HP_HUMAN: f32 = 60.0;
-const MAX_HP_BEAR: f32 = 300.0;
+pub const MAX_HP_BEAR: f32 = 300.0;
 const MAX_HP_FOX: f32 = 30.0;
 const MAX_HP_WALNUT: f32 = INFINITY;
+pub const WEAK_BEAR_HP_THRESHOLD: f32 = 270.0;
 
 pub const HEALING_HP_HUMAN: f32 = 30.0;
 pub const HEALING_HP_BEAR: f32 = 60.0;
 pub const HEALING_HP_FOX: f32 = 10.0;
 pub const HEALING_HP_WALNUT: f32 = 5.0;
-
-pub const WEAK_HP_RATIO: f32 = 0.9;
 
 impl HP {
     pub fn human() -> HP {
@@ -94,10 +97,10 @@ impl HP {
             val: MAX_HP_HUMAN,
         };
     }
-    pub fn strong_bear() -> HP {
+    pub fn bear(val: f32) -> HP {
         return HP {
             max: MAX_HP_BEAR,
-            val: MAX_HP_BEAR,
+            val,
         };
     }
     pub fn fox() -> HP {
@@ -115,7 +118,8 @@ impl HP {
 }
 
 const MAX_SATIETY_HUMAN: f32 = INFINITY;
-const MAX_SATIETY_BEAR: f32 = 10.0;
+const MAX_SATIETY_STRONG_BEAR: f32 = 10.0;
+const MAX_SATIETY_WEAK_BEAR: f32 = INFINITY;
 const MAX_SATIETY_FOX: f32 = 5.0;
 const MAX_SATIETY_WALNUT: f32 = INFINITY;
 
@@ -133,7 +137,13 @@ impl Satiety {
     }
     pub fn strong_bear() -> Satiety {
         return Satiety {
-            max: MAX_SATIETY_BEAR,
+            max: MAX_SATIETY_STRONG_BEAR,
+            val: 0.0,
+        };
+    }
+    pub fn weak_bear() -> Satiety {
+        return Satiety {
+            max: MAX_SATIETY_WEAK_BEAR,
             val: 0.0,
         };
     }

@@ -25,7 +25,7 @@ impl Plugin for HpPlugin {
                 .label("eat")
                 .with_system(eat_walnut)
                 .with_system(eat_fox)
-                .with_system(eat_strong_bear)
+                .with_system(eat_weak_bear)
                 .with_system(eat_human),
         )
         .add_system_set(
@@ -35,6 +35,7 @@ impl Plugin for HpPlugin {
                 .with_system(eaten_walnut)
                 .with_system(eaten_fox)
                 .with_system(eaten_strong_bear)
+                .with_system(eaten_weak_bear)
                 .with_system(eaten_human),
         );
     }
@@ -143,25 +144,41 @@ fn eaten_strong_bear(
         .iter_mut()
         .for_each(|(_, b_pos, mut b_hp)| {
             eater_query.iter().for_each(|(_, e_pos, _)| {
-                if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
+                if b_pos == e_pos {
                     b_hp.val = 0.0;
                 }
             });
         });
 }
 
-fn eat_strong_bear(
+fn eaten_weak_bear(
+    eater_query: Query<(Entity, &Position, &HP), With<WeakBearEater>>,
+    mut weak_bear_query: Query<
+        (Entity, &Position, &mut HP),
+        (With<WeakBear>, Without<WeakBearEater>),
+    >,
+) {
+    weak_bear_query.iter_mut().for_each(|(_, b_pos, mut b_hp)| {
+        eater_query.iter().for_each(|(_, e_pos, _)| {
+            if b_pos == e_pos {
+                b_hp.val = 0.0;
+            }
+        });
+    });
+}
+
+fn eat_weak_bear(
     mut eater_query: Query<
         (Entity, &Position, &mut HP, &mut Satiety),
-        (With<StrongBearEater>, Without<StrongBear>),
+        (With<WeakBearEater>, Without<WeakBear>),
     >,
-    strong_bear_query: Query<(Entity, &Position, &HP), With<StrongBear>>,
+    weak_bear_query: Query<(Entity, &Position, &HP), With<WeakBear>>,
 ) {
     eater_query
         .iter_mut()
         .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
-            strong_bear_query.iter().for_each(|(_, b_pos, b_hp)| {
-                if b_pos == e_pos && b_hp.val < b_hp.max * WEAK_HP_RATIO {
+            weak_bear_query.iter().for_each(|(_, b_pos, b_hp)| {
+                if b_pos == e_pos {
                     e_hp.val += HEALING_HP_BEAR;
                     e_sat.val += HEALING_SATIETY_BEAR
                 }
@@ -175,7 +192,7 @@ fn eaten_human(
 ) {
     human_query.iter_mut().for_each(|(_, h_pos, mut h_hp)| {
         eater_query.iter().for_each(|(_, e_pos, e_hp)| {
-            if h_pos == e_pos && e_hp.val > e_hp.max * WEAK_HP_RATIO {
+            if h_pos == e_pos {
                 h_hp.val = 0.0;
             }
         });
@@ -193,7 +210,7 @@ fn eat_human(
         .iter_mut()
         .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
             human_query.iter().for_each(|(_, h_pos, h_hp)| {
-                if h_pos == e_pos && e_hp.val > e_hp.max * WEAK_HP_RATIO {
+                if h_pos == e_pos {
                     e_hp.val += HEALING_HP_HUMAN;
                     e_sat.val += HEALING_SATIETY_HUMAN;
                 }
