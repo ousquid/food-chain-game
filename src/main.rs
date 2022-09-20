@@ -661,7 +661,11 @@ fn move_fox(
 fn move_strong_bear(
     timer: ResMut<GameTimer>,
     field_query: Query<&Position, With<Field>>,
-    mut strong_bear_query: Query<(&mut Position, &mut Stamina), (With<StrongBear>, Without<Field>)>,
+    mut strong_bear_query: Query<
+        (&mut Position, &mut Stamina),
+        (With<StrongBear>, Without<Field>, Without<StrongBearPrey>),
+    >,
+    prey_query: Query<&Position, With<StrongBearPrey>>,
 ) {
     if !timer.0.finished() {
         return;
@@ -669,15 +673,11 @@ fn move_strong_bear(
     strong_bear_query
         .iter_mut()
         .for_each(|(mut pos_strong_bear, mut stamina)| {
-            let dir = get_random_direction();
             if stamina.can_move() {
-                if reachable(
-                    &field_query,
-                    pos_strong_bear.x + dir.x,
-                    pos_strong_bear.y + dir.y,
-                ) {
-                    pos_strong_bear.x += dir.x;
-                    pos_strong_bear.y += dir.y;
+                let decided_pos = approach(prey_query.iter(), &pos_strong_bear, &field_query);
+                if let Some(pos) = decided_pos {
+                    pos_strong_bear.x = pos.x;
+                    pos_strong_bear.y = pos.y;
                     stamina.val = 0
                 }
             }
@@ -687,7 +687,11 @@ fn move_strong_bear(
 fn move_weak_bear(
     timer: ResMut<GameTimer>,
     field_query: Query<&Position, With<Field>>,
-    mut weak_bear_query: Query<(&mut Position, &mut Stamina), (With<WeakBear>, Without<Field>)>,
+    mut weak_bear_query: Query<
+        (&mut Position, &mut Stamina),
+        (With<WeakBear>, Without<Field>, Without<WeakBearPrey>),
+    >,
+    prey_query: Query<&Position, With<WeakBearPrey>>,
 ) {
     if !timer.0.finished() {
         return;
@@ -695,15 +699,11 @@ fn move_weak_bear(
     weak_bear_query
         .iter_mut()
         .for_each(|(mut pos_weak_bear, mut stamina)| {
-            let dir = get_random_direction();
             if stamina.can_move() {
-                if reachable(
-                    &field_query,
-                    pos_weak_bear.x + dir.x,
-                    pos_weak_bear.y + dir.y,
-                ) {
-                    pos_weak_bear.x += dir.x;
-                    pos_weak_bear.y += dir.y;
+                let decided_pos = approach(prey_query.iter(), &pos_weak_bear, &field_query);
+                if let Some(pos) = decided_pos {
+                    pos_weak_bear.x = pos.x;
+                    pos_weak_bear.y = pos.y;
                     stamina.val = 0
                 }
             }
