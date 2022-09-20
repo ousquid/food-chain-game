@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use std::f32::INFINITY;
 use std::ops;
 
-#[derive(Component, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Component, Clone, Copy, PartialEq, Eq, Debug, Hash)]
 pub struct Position {
     pub x: i32,
     pub y: i32,

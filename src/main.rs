@@ -3,6 +3,7 @@ pub mod eat;
 use crate::components::*;
 use crate::eat::*;
 use array_macro::*;
+use std::collections::HashSet;
 
 use bevy::ecs::*;
 use bevy::prelude::*;
@@ -32,7 +33,7 @@ const HEALING_STAMINA_FOX: i32 = 10;
 const HEALING_STAMINA_WALNUT: i32 = 0;
 const MAX_STAMINA: i32 = 100;
 
-const HEALING_STAMINA_SHIP: i32 = 20; // 500msec / 1move * 88 = 44 sec
+const HEALING_STAMINA_SHIP: i32 = 4; // 2.5sec / 1move * 88 = 220 sec = 3.5 min
 const SHIP_MOVING: [Position; 88] = array![x => match x {
     0..=11 => Position::right(),
     12..=43 => Position::down(),
@@ -491,18 +492,25 @@ fn increase_walnut(
         return;
     }
     let mut rng = rand::thread_rng();
+    let mut new_waltnuts: HashSet<Position> = HashSet::new();
     walnut_query.iter().for_each(|position| {
-        if rng.gen_range(1..=100) > 99 {
+        if rng.gen_range(1..=100) > 95 {
             let offset = get_increase_pos(&position, 2);
             let new_pos = Position {
                 x: position.x + offset.x,
                 y: position.y + offset.y,
             };
             if reachable(&field_query, new_pos.x, new_pos.y) {
-                spawn_walnut(&mut commands, new_pos, &asset_server);
+                new_waltnuts.insert(new_pos);
             }
         }
     });
+    walnut_query.iter().for_each(|position| {
+        new_waltnuts.remove(position);
+    });
+    for pos in new_waltnuts {
+        spawn_walnut(&mut commands, pos, &asset_server);
+    }
 }
 
 fn increase_fox(
