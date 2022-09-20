@@ -605,6 +605,35 @@ fn reachable(field_query: &Query<&Position, With<Field>>, x: i32, y: i32) -> boo
 fn distance(pos1: &Position, pos2: &Position) -> i32 {
     (pos1.x - pos2.x).abs() + (pos1.y - pos2.y).abs()
 }
+fn get_neighbor<'a, T>(prey: T, pos: &Position) -> &'a Position
+where
+    T: Iterator<Item = &'a Position>,
+{
+    prey.min_by_key(|pos_food| distance(pos_food, pos))
+        .unwrap_or(&Position { x: 0, y: 0 })
+}
+fn approach<'a, T>(
+    prey: T,
+    pos: &Position,
+    field_query: &Query<&Position, With<Field>>,
+) -> Option<Position>
+where
+    T: Iterator<Item = &'a Position>,
+{
+    let neighbor = get_neighbor(prey, &pos);
+    let new_positions = [
+        Position { x: 1, y: 0 },
+        Position { x: -1, y: 0 },
+        Position { x: 0, y: 1 },
+        Position { x: 0, y: -1 },
+    ]
+    .iter()
+    .map(|dir| pos + dir);
+
+    new_positions
+        .filter(|p| reachable(&field_query, p.x, p.y))
+        .min_by_key(|p| distance(p, neighbor))
+}
 fn move_fox(
     timer: ResMut<GameTimer>,
     field_query: Query<&Position, With<Field>>,
@@ -618,23 +647,8 @@ fn move_fox(
         return;
     }
     fox_query.iter_mut().for_each(|(mut pos_fox, mut stamina)| {
-        let neighbor = prey_query
-            .iter()
-            .min_by_key(|pos| distance(&pos_fox, pos))
-            .unwrap_or(&Position { x: 0, y: 0 });
-
         if stamina.can_move() {
-            let new_positions = [
-                Position { x: 1, y: 0 },
-                Position { x: -1, y: 0 },
-                Position { x: 0, y: 1 },
-                Position { x: 0, y: -1 },
-            ]
-            .iter()
-            .map(|pos| pos_fox.as_ref() + pos);
-            let decided_pos = new_positions
-                .filter(|pos| reachable(&field_query, pos.x, pos.y))
-                .min_by_key(|pos| distance(pos, neighbor));
+            let decided_pos = approach(prey_query.iter(), &pos_fox, &field_query);
             if let Some(pos) = decided_pos {
                 pos_fox.x = pos.x;
                 pos_fox.y = pos.y;
