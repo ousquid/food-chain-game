@@ -2,6 +2,7 @@ pub mod components;
 pub mod eat;
 use crate::components::*;
 use crate::eat::*;
+use array_macro::*;
 
 use bevy::ecs::*;
 use bevy::prelude::*;
@@ -31,54 +32,14 @@ const HEALING_STAMINA_FOX: i32 = 10;
 const HEALING_STAMINA_WALNUT: i32 = 0;
 const MAX_STAMINA: i32 = 100;
 
-const HEALING_STAMINA_SHIP: i32 = 60;
-const SHIP_MOVING: [Position; 45] = [
-    Position::right(),
-    Position::right(),
-    Position::right(),
-    Position::right(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::down(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::up(),
-    Position::left(),
-    Position::left(),
-    Position::left(),
-    Position::left(),
-    Position::stay(),
-    Position::stay(),
-    Position::stay(),
-    Position::stay(),
-    Position::stay(),
-];
+const HEALING_STAMINA_SHIP: i32 = 20; // 500msec / 1move * 88 = 44 sec
+const SHIP_MOVING: [Position; 88] = array![x => match x {
+    0..=11 => Position::right(),
+    12..=43 => Position::down(),
+    44..=75 => Position::up(),
+    76..=87 => Position::left(),
+    _ => Position::stay(),
+}; 88];
 
 #[derive(Component)]
 struct State {
@@ -839,7 +800,7 @@ fn despawn(mut commands: Commands, mut food_query: Query<(Entity, &HP)>) {
 
 fn move_ship(
     timer: ResMut<GameTimer>,
-    mut ship_query: Query<(&mut Ship, &mut Position, &Stamina)>,
+    mut ship_query: Query<(&mut Ship, &mut Position, &mut Stamina)>,
 ) {
     if !timer.0.finished() {
         return;
@@ -847,12 +808,13 @@ fn move_ship(
 
     ship_query
         .iter_mut()
-        .for_each(|(mut ship, mut pos, stamina)| {
+        .for_each(|(mut ship, mut pos, mut stamina)| {
             if stamina.can_move() {
                 let offset = SHIP_MOVING[ship.index];
 
                 pos.x += offset.x;
                 pos.y += offset.y;
+                stamina.val = 0;
                 ship.index = (ship.index + 1) % SHIP_MOVING.len()
             }
         })
