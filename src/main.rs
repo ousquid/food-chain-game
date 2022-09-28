@@ -559,22 +559,16 @@ fn reachable(field_query: &Query<&Position, With<Field>>, x: i32, y: i32) -> boo
 fn distance(pos1: &Position, pos2: &Position) -> i32 {
     (pos1.x - pos2.x).abs() + (pos1.y - pos2.y).abs()
 }
-fn get_neighbor<'a, T>(prey: T, pos: &Position) -> &'a Position
+fn get_neighbor<'a, T>(prey: T, pos: &Position) -> Option<&'a Position>
 where
     T: Iterator<Item = &'a Position>,
 {
     prey.min_by_key(|pos_food| distance(pos_food, pos))
-        .unwrap_or(&Position { x: 0, y: 0 })
 }
-fn approach<'a, T>(
-    prey: T,
-    pos: &Position,
-    field_query: &Query<&Position, With<Field>>,
-) -> Option<Position>
+fn approach<'a, T>(prey: T, pos: &Position, field_query: &Query<&Position, With<Field>>) -> Position
 where
     T: Iterator<Item = &'a Position>,
 {
-    let neighbor = get_neighbor(prey, &pos);
     let new_positions = [
         Position { x: 1, y: 0 },
         Position { x: -1, y: 0 },
@@ -584,9 +578,19 @@ where
     .iter()
     .map(|dir| pos + dir);
 
-    new_positions
-        .filter(|p| reachable(&field_query, p.x, p.y))
-        .min_by_key(|p| distance(p, neighbor))
+    if let Some(neighbor) = get_neighbor(prey, &pos) {
+        let mut rng = thread_rng();
+        if rng.gen_range(1..=10) <= 7 {
+            new_positions
+                .filter(|p| reachable(&field_query, p.x, p.y))
+                .min_by_key(|p| distance(p, neighbor))
+                .unwrap_or(Position { x: pos.x, y: pos.y })
+        } else {
+            &(get_random_direction()) + pos
+        }
+    } else {
+        &(get_random_direction()) + pos
+    }
 }
 fn move_fox(
     timer: ResMut<GameTimer>,
@@ -603,11 +607,9 @@ fn move_fox(
     fox_query.iter_mut().for_each(|(mut pos_fox, mut stamina)| {
         if stamina.can_move() {
             let decided_pos = approach(prey_query.iter(), &pos_fox, &field_query);
-            if let Some(pos) = decided_pos {
-                pos_fox.x = pos.x;
-                pos_fox.y = pos.y;
-                stamina.val = 0
-            }
+            pos_fox.x = decided_pos.x;
+            pos_fox.y = decided_pos.y;
+            stamina.val = 0
         }
     })
 }
@@ -629,11 +631,9 @@ fn move_strong_bear(
         .for_each(|(mut pos_strong_bear, mut stamina)| {
             if stamina.can_move() {
                 let decided_pos = approach(prey_query.iter(), &pos_strong_bear, &field_query);
-                if let Some(pos) = decided_pos {
-                    pos_strong_bear.x = pos.x;
-                    pos_strong_bear.y = pos.y;
-                    stamina.val = 0
-                }
+                pos_strong_bear.x = decided_pos.x;
+                pos_strong_bear.y = decided_pos.y;
+                stamina.val = 0
             }
         })
 }
@@ -655,11 +655,9 @@ fn move_weak_bear(
         .for_each(|(mut pos_weak_bear, mut stamina)| {
             if stamina.can_move() {
                 let decided_pos = approach(prey_query.iter(), &pos_weak_bear, &field_query);
-                if let Some(pos) = decided_pos {
-                    pos_weak_bear.x = pos.x;
-                    pos_weak_bear.y = pos.y;
-                    stamina.val = 0
-                }
+                pos_weak_bear.x = decided_pos.x;
+                pos_weak_bear.y = decided_pos.y;
+                stamina.val = 0
             }
         })
 }

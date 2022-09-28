@@ -14,9 +14,9 @@ pub const SCREEN_WIDTH: u32 = 24;
 pub const SCREEN_HEIGHT: u32 = 36;
 
 // Food Spawn
-pub const INITIAL_BEAR_NUM: u32 = 5;
-pub const INITIAL_FOX_NUM: u32 = 8;
-pub const INITIAL_WALNUT_NUM: u32 = 10;
+pub const INITIAL_BEAR_NUM: u32 = 1;
+pub const INITIAL_FOX_NUM: u32 = 1;
+pub const INITIAL_WALNUT_NUM: u32 = 0;
 
 // Game Tick
 // 1Game 3.5 min = 210 sec = 2100 tick
