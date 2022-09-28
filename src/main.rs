@@ -324,6 +324,7 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
+    let render_pos = get_render_position(&position);
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -332,7 +333,10 @@ fn spawn_player(commands: &mut Commands, position: Position, asset_server: &Res<
                 fill_mode: FillMode::color(Color::PURPLE),
                 outline_mode: StrokeMode::new(Color::BLACK, 0.0),
             },
-            Transform::default(),
+            Transform {
+                translation: Vec3::new(render_pos.x as f32, render_pos.y as f32, 0.0),
+                ..Default::default()
+            },
         ))
         .insert(Player)
         .insert(Human)
@@ -356,6 +360,7 @@ fn spawn_strong_bear(
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
+    let render_pos = get_render_position(&position);
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -364,7 +369,10 @@ fn spawn_strong_bear(
                 fill_mode: FillMode::color(Color::rgb_u8(148, 115, 91)),
                 outline_mode: StrokeMode::new(Color::BLACK, 0.0),
             },
-            Transform::default(),
+            Transform {
+                translation: Vec3::new(render_pos.x as f32, render_pos.y as f32, 0.0),
+                ..Default::default()
+            },
         ))
         .insert(StrongBear)
         .insert(WalnutEater)
@@ -387,6 +395,7 @@ fn spawn_weak_bear(
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
+    let render_pos = get_render_position(&position);
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -395,7 +404,10 @@ fn spawn_weak_bear(
                 fill_mode: FillMode::color(Color::rgb_u8(148, 115, 255)),
                 outline_mode: StrokeMode::new(Color::BLACK, 0.0),
             },
-            Transform::default(),
+            Transform {
+                translation: Vec3::new(render_pos.x as f32, render_pos.y as f32, 0.0),
+                ..Default::default()
+            },
         ))
         .insert(WeakBear)
         .insert(WalnutEater)
@@ -415,6 +427,7 @@ fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<Ass
         radius: (UNIT_WIDTH / 2) as f32,
         center: Vec2::new(0.0, 0.0),
     };
+    let render_pos = get_render_position(&position);
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -423,7 +436,10 @@ fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<Ass
                 fill_mode: FillMode::color(Color::ORANGE),
                 outline_mode: StrokeMode::new(Color::BLACK, 0.0),
             },
-            Transform::default(),
+            Transform {
+                translation: Vec3::new(render_pos.x as f32, render_pos.y as f32, 0.0),
+                ..Default::default()
+            },
         ))
         .insert(Fox)
         .insert(WalnutEater)
