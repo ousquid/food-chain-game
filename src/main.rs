@@ -477,7 +477,7 @@ fn increase_walnut(
         return;
     }
     let mut rng = rand::thread_rng();
-    let mut new_waltnuts: HashSet<Position> = HashSet::new();
+    let mut new_walnuts: HashSet<Position> = HashSet::new();
     walnut_query.iter().for_each(|position| {
         if rng.gen_range(1..=100) > 95 {
             let offset = get_increase_pos(&position, 2);
@@ -486,14 +486,14 @@ fn increase_walnut(
                 y: position.y + offset.y,
             };
             if reachable(&field_query, new_pos.x, new_pos.y) {
-                new_waltnuts.insert(new_pos);
+                new_walnuts.insert(new_pos);
             }
         }
     });
     walnut_query.iter().for_each(|position| {
-        new_waltnuts.remove(position);
+        new_walnuts.remove(position);
     });
-    for pos in new_waltnuts {
+    for pos in new_walnuts {
         spawn_walnut(&mut commands, pos, &asset_server);
     }
 }
