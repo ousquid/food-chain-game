@@ -594,18 +594,25 @@ where
     .iter()
     .map(|dir| pos + dir);
 
+    let random_pos = &(get_random_direction()) + pos;
+    let reachable_random_pos = if reachable(&field_query, random_pos.x, random_pos.y) {
+        random_pos
+    } else {
+        Position { x: pos.x, y: pos.y }
+    };
+
     if let Some(neighbor) = get_neighbor(prey, &pos) {
         let mut rng = thread_rng();
         if rng.gen_range(1..=10) <= 7 {
             new_positions
                 .filter(|p| reachable(&field_query, p.x, p.y))
                 .min_by_key(|p| distance(p, neighbor))
-                .unwrap_or(Position { x: pos.x, y: pos.y })
+                .unwrap()
         } else {
-            &(get_random_direction()) + pos
+            reachable_random_pos
         }
     } else {
-        &(get_random_direction()) + pos
+        reachable_random_pos
     }
 }
 fn move_fox(
