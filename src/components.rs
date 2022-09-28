@@ -1,3 +1,5 @@
+use crate::consts::*;
+
 use bevy::prelude::*;
 use std::f32::INFINITY;
 use std::ops;
@@ -101,16 +103,10 @@ pub struct Satiety {
     pub max: f32,
 }
 
-const MAX_HP_HUMAN: f32 = 60.0;
-pub const MAX_HP_BEAR: f32 = 300.0;
-const MAX_HP_FOX: f32 = 50.0;
-const MAX_HP_WALNUT: f32 = INFINITY;
-pub const WEAK_BEAR_HP_THRESHOLD: f32 = 270.0;
-
-pub const HEALING_HP_HUMAN: f32 = 30.0;
-pub const HEALING_HP_BEAR: f32 = 60.0;
-pub const HEALING_HP_FOX: f32 = 10.0;
-pub const HEALING_HP_WALNUT: f32 = 5.0;
+#[derive(Component)]
+pub struct Age {
+    pub val: i32,
+}
 
 impl HP {
     pub fn human() -> HP {

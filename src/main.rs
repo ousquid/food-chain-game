@@ -1,6 +1,9 @@
 pub mod components;
+pub mod consts;
 pub mod eat;
+
 use crate::components::*;
+use crate::consts::*;
 use crate::eat::*;
 use array_macro::*;
 use std::collections::HashSet;
@@ -11,30 +14,7 @@ use rand::prelude::*;
 // https://docs.rs/bevy_prototype_lyon/latest/bevy_prototype_lyon/
 use bevy_prototype_lyon::prelude::*;
 
-const UNIT_WIDTH: u32 = 20;
-const UNIT_HEIGHT: u32 = 20;
-
-const FIELD_LEFTBTM_X: i32 = 1;
-const FIELD_LEFTBTM_Y: i32 = 6;
-const FIELD_WIDTH: u32 = 16;
-const FIELD_HEIGHT: u32 = 28;
-
-const SCREEN_WIDTH: u32 = 24;
-const SCREEN_HEIGHT: u32 = 36;
-
-const INITIAL_BEAR_NUM: u32 = 5;
-const INITIAL_FOX_NUM: u32 = 8;
-const INITIAL_WALNUT_NUM: u32 = 10;
-
-const HEALING_STAMINA_HUMAN: i32 = 30;
-const HEALING_STAMINA_STRONG_BEAR: i32 = 8;
-const HEALING_STAMINA_WEAK_BEAR: i32 = 8;
-const HEALING_STAMINA_FOX: i32 = 10;
-const HEALING_STAMINA_WALNUT: i32 = 0;
-const MAX_STAMINA: i32 = 100;
-
-const HEALING_STAMINA_SHIP: i32 = 4; // 2.5sec / 1move * 88 = 220 sec = 3.5 min
-const SHIP_MOVING: [Position; 88] = array![x => match x {
+pub const SHIP_MOVING: [Position; 88] = array![x => match x {
     0..=11 => Position::right(),
     12..=43 => Position::down(),
     44..=75 => Position::up(),
@@ -149,7 +129,7 @@ fn main() {
             ..Default::default()
         })
         .insert_resource(GameTimer(Timer::new(
-            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis(GAME_TICK),
             true,
         )))
         .add_plugins(DefaultPlugins)
@@ -157,6 +137,7 @@ fn main() {
         .add_plugin(HpPlugin)
         .add_startup_system(setup_system)
         .add_system(heal)
+        .add_system(get_old)
         .add_system(move_player)
         .add_system(move_fox)
         .add_system(move_strong_bear)
@@ -171,8 +152,8 @@ fn main() {
         .add_system(despawn_hp_text)
         .add_system(spawn_all_hp_text)
         .add_system(position_transform)
-        .add_system(strengthen_bear)
         .add_system(weaken_bear)
+        .add_system(die_of_old_age)
         .add_system(despawn.after("eaten"))
         .run();
 }
@@ -392,7 +373,8 @@ fn spawn_strong_bear(
         .insert(position)
         .insert(Stamina::strong_bear())
         .insert(HP::bear(hp))
-        .insert(Satiety::strong_bear());
+        .insert(Satiety::strong_bear())
+        .insert(Age { val: 0 });
 }
 
 fn spawn_weak_bear(
@@ -422,7 +404,10 @@ fn spawn_weak_bear(
         .insert(position)
         .insert(Stamina::weak_bear())
         .insert(HP::bear(hp))
-        .insert(Satiety::weak_bear());
+        .insert(Satiety::weak_bear())
+        .insert(Age {
+            val: HEALTHSPAN_STRONG_BEAR,
+        });
 }
 
 fn spawn_fox(commands: &mut Commands, position: Position, asset_server: &Res<AssetServer>) {
@@ -725,6 +710,14 @@ fn heal(timer: ResMut<GameTimer>, mut query: Query<&mut Stamina>) {
     query.iter_mut().for_each(|mut stamina| stamina.cool_down())
 }
 
+fn get_old(timer: ResMut<GameTimer>, mut query: Query<&mut Age>) {
+    if !timer.0.finished() {
+        return;
+    }
+
+    query.iter_mut().for_each(|mut age| age.val += 1)
+}
+
 fn goal(
     mut commands: Commands,
     player_query: Query<(Entity, &Position), With<Player>>,
@@ -828,30 +821,28 @@ fn move_ship(
         })
 }
 
-fn strengthen_bear(
+fn weaken_bear(
     mut commands: Commands,
-    mut strong_bear_query: Query<(Entity, &Position, &HP), With<StrongBear>>,
+    mut strong_bear_query: Query<(Entity, &Position, &HP, &Age), With<StrongBear>>,
     asset_server: Res<AssetServer>,
 ) {
     strong_bear_query
         .iter_mut()
-        .for_each(|(strong_bear, pos, hp)| {
-            if hp.val <= WEAK_BEAR_HP_THRESHOLD {
+        .for_each(|(strong_bear, pos, hp, age)| {
+            if age.val >= HEALTHSPAN_STRONG_BEAR {
                 commands.entity(strong_bear).despawn();
                 spawn_weak_bear(&mut commands, *pos, &asset_server, hp.val);
             }
         });
 }
 
-fn weaken_bear(
+fn die_of_old_age(
     mut commands: Commands,
-    mut weak_bear_query: Query<(Entity, &Position, &HP), With<WeakBear>>,
-    asset_server: Res<AssetServer>,
+    mut weak_bear_query: Query<(Entity, &Age), With<WeakBear>>,
 ) {
-    weak_bear_query.iter_mut().for_each(|(weak_bear, pos, hp)| {
-        if hp.val > WEAK_BEAR_HP_THRESHOLD {
+    weak_bear_query.iter_mut().for_each(|(weak_bear, age)| {
+        if age.val >= LIFESPAN_WEAK_BEAR {
             commands.entity(weak_bear).despawn();
-            spawn_strong_bear(&mut commands, *pos, &asset_server, hp.val);
         }
     });
 }

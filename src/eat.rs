@@ -1,4 +1,5 @@
 use crate::components::*;
+use crate::consts::*;
 
 use bevy::prelude::*;
 
@@ -65,7 +66,7 @@ fn hungry(
     }
 
     food_query.iter_mut().for_each(|(entity, mut hp)| {
-        hp.val -= 0.2;
+        hp.val -= HUNGRY_SPEED_BY_TICK;
     })
 }
 
