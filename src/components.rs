@@ -135,17 +135,6 @@ impl HP {
     }
 }
 
-const MAX_SATIETY_HUMAN: f32 = INFINITY;
-const MAX_SATIETY_STRONG_BEAR: f32 = 10.0;
-const MAX_SATIETY_WEAK_BEAR: f32 = INFINITY;
-const MAX_SATIETY_FOX: f32 = 5.0;
-const MAX_SATIETY_WALNUT: f32 = INFINITY;
-
-pub const HEALING_SATIETY_HUMAN: f32 = 8.0;
-pub const HEALING_SATIETY_BEAR: f32 = 4.0;
-pub const HEALING_SATIETY_FOX: f32 = 2.0;
-pub const HEALING_SATIETY_WALNUT: f32 = 1.0;
-
 impl Satiety {
     pub fn human() -> Satiety {
         return Satiety {

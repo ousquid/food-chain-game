@@ -14,9 +14,9 @@ pub const SCREEN_WIDTH: u32 = 24;
 pub const SCREEN_HEIGHT: u32 = 36;
 
 // Food Spawn
-pub const INITIAL_BEAR_NUM: u32 = 20;
+pub const INITIAL_BEAR_NUM: u32 = 1;
 pub const INITIAL_FOX_NUM: u32 = 1;
-pub const INITIAL_WALNUT_NUM: u32 = 0;
+pub const INITIAL_WALNUT_NUM: u32 = 1;
 
 // Game Tick
 // 1Game 3.5 min = 210 sec = 2100 tick
@@ -24,10 +24,11 @@ pub const GAME_TICK: u64 = 100; // ms
 pub const GAME_TICKS_BY_SEC: i32 = 1000 / GAME_TICK as i32;
 
 // Age
-pub const HEALTHSPAN_STRONG_BEAR: i32 = 20 * GAME_TICKS_BY_SEC;
-pub const LIFESPAN_WEAK_BEAR: i32 = 30 * GAME_TICKS_BY_SEC;
+pub const HEALTHSPAN_STRONG_BEAR: i32 = 210 * GAME_TICKS_BY_SEC;
+pub const LIFESPAN_WEAK_BEAR: i32 = 300 * GAME_TICKS_BY_SEC;
 
 // HP
+// decrease hp 2.0 by sec
 pub const HUNGRY_SPEED_BY_TICK: f32 = 2.0 / GAME_TICK as f32;
 
 pub const MAX_HP_HUMAN: f32 = 60.0;
@@ -39,7 +40,7 @@ pub const WEAK_BEAR_HP_THRESHOLD: f32 = 270.0;
 pub const HEALING_HP_HUMAN: f32 = 30.0;
 pub const HEALING_HP_BEAR: f32 = 60.0;
 pub const HEALING_HP_FOX: f32 = 10.0;
-pub const HEALING_HP_WALNUT: f32 = 5.0;
+pub const HEALING_HP_WALNUT: f32 = 1.0;
 
 // Stamina
 pub const MAX_STAMINA: i32 = 100;
@@ -49,4 +50,18 @@ pub const HEALING_STAMINA_STRONG_BEAR: i32 = 8;
 pub const HEALING_STAMINA_WEAK_BEAR: i32 = 8;
 pub const HEALING_STAMINA_FOX: i32 = 10;
 pub const HEALING_STAMINA_WALNUT: i32 = 0;
-pub const HEALING_STAMINA_SHIP: i32 = 4; // 2.5sec / 1move * 88 = 220 sec = 3.5 min
+// MAX_STAMINA / HEALING_STAMINA_SHIP / GAME_TICK_BY_SEC  * move_array_size
+// 100 / 4 / 10 * 120 = 300 sec = 5.0 min
+pub const HEALING_STAMINA_SHIP: i32 = 4;
+
+// Satiety
+const MAX_SATIETY_HUMAN: f32 = INFINITY;
+const MAX_SATIETY_STRONG_BEAR: f32 = 10.0;
+const MAX_SATIETY_WEAK_BEAR: f32 = INFINITY;
+const MAX_SATIETY_FOX: f32 = 5.0;
+const MAX_SATIETY_WALNUT: f32 = INFINITY;
+
+pub const HEALING_SATIETY_HUMAN: f32 = 8.0;
+pub const HEALING_SATIETY_BEAR: f32 = 4.0;
+pub const HEALING_SATIETY_FOX: f32 = 2.0;
+pub const HEALING_SATIETY_WALNUT: f32 = 1.0;

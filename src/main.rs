@@ -14,13 +14,13 @@ use rand::prelude::*;
 // https://docs.rs/bevy_prototype_lyon/latest/bevy_prototype_lyon/
 use bevy_prototype_lyon::prelude::*;
 
-pub const SHIP_MOVING: [Position; 88] = array![x => match x {
+pub const SHIP_MOVING: [Position; 120] = array![x => match x {
     0..=11 => Position::right(),
-    12..=43 => Position::down(),
-    44..=75 => Position::up(),
-    76..=87 => Position::left(),
+    12..=59 => Position::down(),
+    60..=107 => Position::up(),
+    108..=119 => Position::left(),
     _ => Position::stay(),
-}; 88];
+}; 120];
 
 #[derive(Component)]
 struct State {
@@ -496,7 +496,7 @@ fn increase_walnut(
     let mut new_walnuts: HashSet<Position> = HashSet::new();
     walnut_query.iter().for_each(|position| {
         if rng.gen_range(1..=100) > 95 {
-            let offset = get_increase_pos(&position, 2);
+            let offset = get_increase_pos(&position, 3);
             let new_pos = Position {
                 x: position.x + offset.x,
                 y: position.y + offset.y,
@@ -506,8 +506,14 @@ fn increase_walnut(
             }
         }
     });
-    walnut_query.iter().for_each(|position| {
-        new_walnuts.remove(position);
+    walnut_query.iter().for_each(|orig_pos| {
+        new_walnuts
+            .clone()
+            .iter()
+            .filter(|new_pos| distance(orig_pos, new_pos) <= 2)
+            .for_each(|rm| {
+                new_walnuts.remove(rm);
+            });
     });
     for pos in new_walnuts {
         spawn_walnut(&mut commands, pos, &asset_server);
