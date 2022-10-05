@@ -95,6 +95,7 @@ pub struct Counter {
 pub struct HP {
     pub val: f32,
     pub max: f32,
+    pub decrease: f32,
 }
 
 #[derive(Component)]
@@ -113,24 +114,28 @@ impl HP {
         return HP {
             max: MAX_HP_HUMAN,
             val: INITIAL_HP_HUMAN,
+            decrease: DECREASE_HP_HUMAN,
         };
     }
     pub fn bear(val: f32) -> HP {
         return HP {
             max: MAX_HP_BEAR,
             val,
+            decrease: DECREASE_HP_BEAR,
         };
     }
     pub fn fox() -> HP {
         return HP {
             max: MAX_HP_FOX,
             val: MAX_HP_FOX,
+            decrease: DECREASE_HP_FOX,
         };
     }
     pub fn walnut() -> HP {
         return HP {
             max: MAX_HP_WALNUT,
             val: MAX_HP_WALNUT,
+            decrease: DECREASE_HP_WALNUT,
         };
     }
 }

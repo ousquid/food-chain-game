@@ -138,11 +138,15 @@ fn main() {
         .add_startup_system(setup_system)
         .add_system(heal)
         .add_system(get_old)
-        .add_system(move_player)
-        .add_system(move_fox)
-        .add_system(move_strong_bear)
-        .add_system(move_weak_bear)
-        .add_system(move_ship)
+        .add_system_set(
+            SystemSet::new()
+                .after("eaten")
+                .with_system(move_player)
+                .with_system(move_fox)
+                .with_system(move_strong_bear)
+                .with_system(move_weak_bear)
+                .with_system(move_ship),
+        )
         .add_system(increase_strong_bear)
         .add_system(increase_fox)
         .add_system(increase_walnut)
@@ -150,13 +154,14 @@ fn main() {
         .add_system(game_timer)
         .add_system(goal)
         .add_system(despawn_hp_text)
-        .add_system(spawn_all_hp_text)
+        //.add_system(spawn_all_hp_text)
+        .add_system(spawn_all_satiety_text)
         .add_system(position_transform)
         .add_system(weaken_bear)
         .add_system(die_of_old_age)
         .add_system(despawn.after("eaten"))
-        .add_plugin(LogDiagnosticsPlugin::default())
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+        //.add_plugin(LogDiagnosticsPlugin::default())
+        //.add_plugin(FrameTimeDiagnosticsPlugin::default())
         .run();
 }
 
@@ -377,7 +382,6 @@ fn spawn_strong_bear(
             },
         ))
         .insert(StrongBear)
-        .insert(WalnutEater)
         .insert(FoxEater)
         .insert(HumanEater)
         .insert(position)
@@ -412,7 +416,6 @@ fn spawn_weak_bear(
             },
         ))
         .insert(WeakBear)
-        .insert(WalnutEater)
         .insert(FoxEater)
         .insert(HumanPrey)
         .insert(position)
@@ -474,8 +477,6 @@ fn spawn_walnut(commands: &mut Commands, position: Position, asset_server: &Res<
             },
         ))
         .insert(Walnut)
-        .insert(StrongBearPrey)
-        .insert(WeakBearPrey)
         .insert(HumanPrey)
         .insert(FoxPrey)
         .insert(position)
@@ -792,6 +793,59 @@ fn spawn_hp_text(
 ) {
     let text = Text::with_section(
         format!("{}", hp.val as i32),
+        TextStyle {
+            font_size: 10.0,
+            color: Color::BLACK,
+            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+        },
+        Default::default(),
+    );
+
+    let origin_x = UNIT_WIDTH as i32 / 2;
+    let origin_y = UNIT_HEIGHT as i32 / 2;
+
+    commands
+        .spawn_bundle(TextBundle {
+            text: text,
+            style: Style {
+                position_type: PositionType::Absolute,
+                position: Rect {
+                    left: Val::Px((origin_x + position.x * UNIT_WIDTH as i32) as f32),
+                    bottom: Val::Px((origin_y + position.y * UNIT_HEIGHT as i32) as f32),
+                    ..default()
+                },
+                ..default()
+            },
+            ..Default::default()
+        })
+        .insert(HpText);
+}
+
+fn spawn_all_satiety_text(
+    mut commands: Commands,
+    character_query: Query<(&Position, &Satiety)>,
+    asset_server: Res<AssetServer>,
+) {
+    character_query
+        .iter()
+        .for_each(|(pos_character, satiety_character)| {
+            spawn_satiety_text(
+                &mut commands,
+                pos_character,
+                satiety_character,
+                &asset_server,
+            );
+        })
+}
+
+fn spawn_satiety_text(
+    commands: &mut Commands,
+    position: &Position,
+    satiety: &Satiety,
+    asset_server: &Res<AssetServer>,
+) {
+    let text = Text::with_section(
+        format!("{}", satiety.val as i32),
         TextStyle {
             font_size: 10.0,
             color: Color::BLACK,

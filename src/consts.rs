@@ -25,7 +25,7 @@ pub const PROBABILITY_INCREASE_WALNUT: u32 = 300;
 // 1Game 3.5 min = 210 sec = 2100 tick
 pub const GAME_DEFAULT_FPS: i32 = 10;
 // pub const GAME_FPS: i32 = GAME_DEFAULT_FPS; // 100 / GAME_TICK as i32;
-pub const GAME_FPS: i32 = 100;
+pub const GAME_FPS: i32 = 10;
 pub const GAME_TICK: u64 = 1000 / GAME_FPS as u64; // 10; // ms
 
 // Age
@@ -37,14 +37,19 @@ pub const LIFESPAN_WEAK_BEAR: i32 = 300 * GAME_DEFAULT_FPS; // 300 sec
 pub const HUNGRY_SPEED_BY_TICK: f32 = 2.0 / GAME_DEFAULT_FPS as f32;
 
 pub const MAX_HP_HUMAN: f32 = 100.0;
-pub const INITIAL_HP_HUMAN: f32 = 50.0;
 pub const MAX_HP_BEAR: f32 = 50.0;
-pub const MAX_HP_FOX: f32 = 200.0;
+pub const MAX_HP_FOX: f32 = 5.0;
 pub const MAX_HP_WALNUT: f32 = INFINITY;
-pub const WEAK_BEAR_HP_THRESHOLD: f32 = 270.0;
 
-pub const HEALING_HP_HUMAN: f32 = 30.0;
-pub const HEALING_HP_BEAR: f32 = 60.0;
+pub const DECREASE_HP_HUMAN: f32 = 1.0 / GAME_DEFAULT_FPS as f32; // eat fox -> 10sec eat bear-> 30sec
+pub const DECREASE_HP_BEAR: f32 = 0.3 / GAME_DEFAULT_FPS as f32; // eat fox -> 30sec
+pub const DECREASE_HP_FOX: f32 = 0.1 / GAME_DEFAULT_FPS as f32;
+pub const DECREASE_HP_WALNUT: f32 = 0.0;
+
+pub const INITIAL_HP_HUMAN: f32 = 50.0;
+
+pub const HEALING_HP_HUMAN: f32 = 20.0;
+pub const HEALING_HP_BEAR: f32 = 30.0;
 pub const HEALING_HP_FOX: f32 = 10.0;
 pub const HEALING_HP_WALNUT: f32 = 1.0;
 
@@ -64,7 +69,7 @@ pub const HEALING_STAMINA_SHIP: i32 = 4;
 pub const MAX_SATIETY_HUMAN: f32 = INFINITY;
 pub const MAX_SATIETY_STRONG_BEAR: f32 = 10.0;
 pub const MAX_SATIETY_WEAK_BEAR: f32 = INFINITY;
-pub const MAX_SATIETY_FOX: f32 = 5.0;
+pub const MAX_SATIETY_FOX: f32 = 3.0;
 pub const MAX_SATIETY_WALNUT: f32 = INFINITY;
 
 pub const HEALING_SATIETY_HUMAN: f32 = 8.0;

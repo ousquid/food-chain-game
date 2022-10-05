@@ -65,9 +65,9 @@ fn hungry(
         return;
     }
 
-    food_query.iter_mut().for_each(|(entity, mut hp)| {
-        hp.val -= HUNGRY_SPEED_BY_TICK;
-    })
+    food_query
+        .iter_mut()
+        .for_each(|(entity, mut hp)| hp.val -= hp.decrease)
 }
 
 fn eaten_walnut(
