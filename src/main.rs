@@ -103,8 +103,8 @@ fn get_random_direction() -> Position {
 fn get_increase_pos(pos: &Position, range: u32) -> Position {
     loop {
         let mut rng = rand::thread_rng();
-        let x = rng.gen_range(-(range as i32)..range as i32);
-        let y = rng.gen_range(-(range as i32)..range as i32);
+        let x = rng.gen_range(-(range as i32)..=range as i32);
+        let y = rng.gen_range(-(range as i32)..=range as i32);
         let new_pos = Position { x, y };
         if new_pos != *pos {
             return new_pos;
