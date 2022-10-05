@@ -15,25 +15,31 @@ pub const SCREEN_HEIGHT: u32 = 36;
 
 // Food Spawn
 pub const INITIAL_BEAR_NUM: u32 = 1;
-pub const INITIAL_FOX_NUM: u32 = 1;
-pub const INITIAL_WALNUT_NUM: u32 = 1;
+pub const INITIAL_FOX_NUM: u32 = 3;
+pub const INITIAL_WALNUT_NUM: u32 = 5;
+
+// probability (5% = 500)
+pub const PROBABILITY_INCREASE_WALNUT: u32 = 300;
 
 // Game Tick
 // 1Game 3.5 min = 210 sec = 2100 tick
-pub const GAME_TICK: u64 = 100; // ms
-pub const GAME_TICKS_BY_SEC: i32 = 1000 / GAME_TICK as i32;
+pub const GAME_DEFAULT_FPS: i32 = 10;
+// pub const GAME_FPS: i32 = GAME_DEFAULT_FPS; // 100 / GAME_TICK as i32;
+pub const GAME_FPS: i32 = 100;
+pub const GAME_TICK: u64 = 1000 / GAME_FPS as u64; // 10; // ms
 
 // Age
-pub const HEALTHSPAN_STRONG_BEAR: i32 = 210 * GAME_TICKS_BY_SEC;
-pub const LIFESPAN_WEAK_BEAR: i32 = 300 * GAME_TICKS_BY_SEC;
+pub const HEALTHSPAN_STRONG_BEAR: i32 = 210 * GAME_DEFAULT_FPS; // 210 sec x 10 FPS
+pub const LIFESPAN_WEAK_BEAR: i32 = 300 * GAME_DEFAULT_FPS; // 300 sec
 
 // HP
 // decrease hp 2.0 by sec
-pub const HUNGRY_SPEED_BY_TICK: f32 = 2.0 / GAME_TICK as f32;
+pub const HUNGRY_SPEED_BY_TICK: f32 = 2.0 / GAME_DEFAULT_FPS as f32;
 
-pub const MAX_HP_HUMAN: f32 = 60.0;
-pub const MAX_HP_BEAR: f32 = 300.0;
-pub const MAX_HP_FOX: f32 = 50.0;
+pub const MAX_HP_HUMAN: f32 = 100.0;
+pub const INITIAL_HP_HUMAN: f32 = 50.0;
+pub const MAX_HP_BEAR: f32 = 50.0;
+pub const MAX_HP_FOX: f32 = 200.0;
 pub const MAX_HP_WALNUT: f32 = INFINITY;
 pub const WEAK_BEAR_HP_THRESHOLD: f32 = 270.0;
 

@@ -8,11 +8,11 @@ use crate::eat::*;
 use array_macro::*;
 use std::collections::HashSet;
 
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::ecs::*;
 use bevy::prelude::*;
-use rand::prelude::*;
-// https://docs.rs/bevy_prototype_lyon/latest/bevy_prototype_lyon/
 use bevy_prototype_lyon::prelude::*;
+use rand::prelude::*;
 
 pub const SHIP_MOVING: [Position; 120] = array![x => match x {
     0..=11 => Position::right(),
@@ -155,6 +155,8 @@ fn main() {
         .add_system(weaken_bear)
         .add_system(die_of_old_age)
         .add_system(despawn.after("eaten"))
+        .add_plugin(LogDiagnosticsPlugin::default())
+        .add_plugin(FrameTimeDiagnosticsPlugin::default())
         .run();
 }
 
@@ -495,7 +497,7 @@ fn increase_walnut(
     let mut rng = rand::thread_rng();
     let mut new_walnuts: HashSet<Position> = HashSet::new();
     walnut_query.iter().for_each(|position| {
-        if rng.gen_range(1..=100) > 95 {
+        if rng.gen_range(1..=10000) <= PROBABILITY_INCREASE_WALNUT {
             let offset = get_increase_pos(&position, 3);
             let new_pos = Position {
                 x: position.x + offset.x,

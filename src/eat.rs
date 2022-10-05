@@ -16,7 +16,7 @@ struct StomachTimer(Timer);
 impl Plugin for HpPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(StomachTimer(Timer::new(
-            std::time::Duration::from_millis(100),
+            std::time::Duration::from_millis(GAME_TICK),
             true,
         )))
         .add_system(stomach_timer)

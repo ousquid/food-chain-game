@@ -112,7 +112,7 @@ impl HP {
     pub fn human() -> HP {
         return HP {
             max: MAX_HP_HUMAN,
-            val: MAX_HP_HUMAN,
+            val: INITIAL_HP_HUMAN,
         };
     }
     pub fn bear(val: f32) -> HP {
