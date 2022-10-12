@@ -90,11 +90,11 @@ impl Stamina {
 
 fn get_random_direction() -> Position {
     let choices = [
-        Position { x: -1, y: 0 },
-        Position { x: 1, y: 0 },
-        Position { x: 0, y: -1 },
-        Position { x: 0, y: 1 },
-        Position { x: 0, y: 0 },
+        Position { x: -1, y: 0, z: 0 },
+        Position { x: 1, y: 0, z: 0 },
+        Position { x: 0, y: -1, z: 0 },
+        Position { x: 0, y: 1, z: 0 },
+        Position { x: 0, y: 0, z: 0 },
     ];
     let mut rng = thread_rng();
     *choices.choose(&mut rng).unwrap()
@@ -105,18 +105,18 @@ fn get_increase_pos(pos: &Position, range: u32) -> Position {
         let mut rng = rand::thread_rng();
         let x = rng.gen_range(-(range as i32)..=range as i32);
         let y = rng.gen_range(-(range as i32)..=range as i32);
-        let new_pos = Position { x, y };
+        let new_pos = Position { x, y, z: 0 };
         if new_pos != *pos {
             return new_pos;
         }
     }
 }
 
-fn get_random_position() -> Position {
+fn get_random_grid() -> IVec2 {
     let mut rng = rand::thread_rng();
     let x = rng.gen_range(FIELD_LEFTBTM_X..FIELD_LEFTBTM_X as i32 + FIELD_WIDTH as i32);
     let y = rng.gen_range(FIELD_LEFTBTM_Y..FIELD_LEFTBTM_Y as i32 + FIELD_HEIGHT as i32);
-    Position { x, y }
+    IVec2::new(x, y)
 }
 
 fn main() {
@@ -154,8 +154,8 @@ fn main() {
         .add_system(game_timer)
         .add_system(goal)
         .add_system(despawn_hp_text)
-        //.add_system(spawn_all_hp_text)
-        .add_system(spawn_all_satiety_text)
+        .add_system(spawn_all_hp_text)
+        //.add_system(spawn_all_satiety_text)
         .add_system(position_transform)
         .add_system(weaken_bear)
         .add_system(die_of_old_age)
@@ -175,6 +175,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
                 Position {
                     x: i + FIELD_LEFTBTM_X,
                     y: j + FIELD_LEFTBTM_Y,
+                    z: FIELD_LAYER,
                 },
             );
         }
@@ -184,6 +185,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         Position {
             x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1,
             y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1,
+            z: TERMINAL_LAYER,
         },
     );
     spawn_ship(
@@ -191,26 +193,62 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         Position {
             x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1,
             y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1,
+            z: PLAYER_LAYER,
         },
     );
-    spawn_player(&mut commands, Position { x: 4, y: 6 }, &asset_server);
+    spawn_player(
+        &mut commands,
+        Position {
+            x: 4,
+            y: 6,
+            z: PLAYER_LAYER,
+        },
+        &asset_server,
+    );
     for _ in 0..INITIAL_BEAR_NUM {
+        let grid = get_random_grid();
         spawn_strong_bear(
             &mut commands,
-            get_random_position(),
+            Position {
+                x: grid[0],
+                y: grid[1],
+                z: BEAR_LAYER,
+            },
             &asset_server,
             MAX_HP_BEAR,
         );
     }
     for _ in 0..INITIAL_FOX_NUM {
-        spawn_fox(&mut commands, get_random_position(), &asset_server);
+        let grid = get_random_grid();
+        spawn_fox(
+            &mut commands,
+            Position {
+                x: grid[0],
+                y: grid[1],
+                z: PLAYER_LAYER,
+            },
+            &asset_server,
+        );
     }
     for _ in 0..INITIAL_WALNUT_NUM {
-        spawn_walnut(&mut commands, get_random_position(), &asset_server);
+        let grid = get_random_grid();
+        spawn_walnut(
+            &mut commands,
+            Position {
+                x: grid[0],
+                y: grid[1],
+                z: PLAYER_LAYER,
+            },
+            &asset_server,
+        );
     }
     spawn_text(
         &mut commands,
-        Position { x: 10, y: 10 },
+        Position {
+            x: 10,
+            y: 10,
+            z: TEXT_LAYER,
+        },
         StateKind::Playing,
         &asset_server,
     );
@@ -226,13 +264,18 @@ fn get_render_position(pos: &Position) -> Position {
     return Position {
         x: origin_x + pos.x as i32 * UNIT_WIDTH as i32,
         y: origin_y + pos.y as i32 * UNIT_HEIGHT as i32,
+        z: pos.z,
     };
 }
 
 fn position_transform(mut position_query: Query<(&Position, &mut Transform)>) {
     position_query.iter_mut().for_each(|(pos, mut transform)| {
         let render_pos = get_render_position(pos);
-        transform.translation = Vec3::new(render_pos.x as f32, render_pos.y as f32, 0.0);
+        transform.translation = Vec3::new(
+            render_pos.x as f32,
+            render_pos.y as f32,
+            render_pos.z as f32,
+        );
     });
 }
 
@@ -503,6 +546,7 @@ fn increase_walnut(
             let new_pos = Position {
                 x: position.x + offset.x,
                 y: position.y + offset.y,
+                z: position.z,
             };
             if reachable(&field_query, new_pos.x, new_pos.y) {
                 new_walnuts.insert(new_pos);
@@ -540,6 +584,7 @@ fn increase_fox(
             let new_pos = Position {
                 x: position.x + offset.x,
                 y: position.y + offset.y,
+                z: position.z,
             };
             if reachable(&field_query, new_pos.x, new_pos.y) {
                 spawn_fox(&mut commands, new_pos, &asset_server);
@@ -567,6 +612,7 @@ fn increase_strong_bear(
                 let new_pos = Position {
                     x: position.x + offset.x,
                     y: position.y + offset.y,
+                    z: position.z,
                 };
                 if reachable(&field_query, new_pos.x, new_pos.y) {
                     spawn_strong_bear(&mut commands, new_pos, &asset_server, MAX_HP_BEAR);
@@ -595,10 +641,10 @@ where
     T: Iterator<Item = &'a Position>,
 {
     let new_positions = [
-        Position { x: 1, y: 0 },
-        Position { x: -1, y: 0 },
-        Position { x: 0, y: 1 },
-        Position { x: 0, y: -1 },
+        Position { x: 1, y: 0, z: 0 },
+        Position { x: -1, y: 0, z: 0 },
+        Position { x: 0, y: 1, z: 0 },
+        Position { x: 0, y: -1, z: 0 },
     ]
     .iter()
     .map(|dir| pos + dir);
@@ -607,7 +653,7 @@ where
     let reachable_random_pos = if reachable(&field_query, random_pos.x, random_pos.y) {
         random_pos
     } else {
-        Position { x: pos.x, y: pos.y }
+        *pos
     };
 
     if let Some(neighbor) = get_neighbor(prey, &pos) {

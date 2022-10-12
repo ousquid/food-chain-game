@@ -4,27 +4,28 @@ use bevy::prelude::*;
 use std::f32::INFINITY;
 use std::ops;
 
-#[derive(Component, Clone, Copy, PartialEq, Eq, Debug, Hash)]
+#[derive(Component, Clone, Copy, Eq, Debug, Hash)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
+    pub z: i32,
 }
 
 impl Position {
     pub const fn up() -> Position {
-        Position { x: 0, y: 1 }
+        Position { x: 0, y: 1, z: 0 }
     }
     pub const fn down() -> Position {
-        Position { x: 0, y: -1 }
+        Position { x: 0, y: -1, z: 0 }
     }
     pub const fn left() -> Position {
-        Position { x: -1, y: 0 }
+        Position { x: -1, y: 0, z: 0 }
     }
     pub const fn right() -> Position {
-        Position { x: 1, y: 0 }
+        Position { x: 1, y: 0, z: 0 }
     }
     pub const fn stay() -> Position {
-        Position { x: 0, y: 0 }
+        Position { x: 0, y: 0, z: 0 }
     }
 }
 
@@ -34,7 +35,13 @@ impl<'a, 'b> ops::Add<&'b Position> for &'a Position {
         Position {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
+            z: self.z + rhs.z,
         }
+    }
+}
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
     }
 }
 pub struct GameTimer(Timer);

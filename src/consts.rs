@@ -4,6 +4,13 @@ use std::f32::INFINITY;
 pub const UNIT_WIDTH: u32 = 20;
 pub const UNIT_HEIGHT: u32 = 20;
 
+// Layer
+pub const FIELD_LAYER: i32 = 0;
+pub const TERMINAL_LAYER: i32 = 1;
+pub const PLAYER_LAYER: i32 = 2;
+pub const BEAR_LAYER: i32 = 3;
+pub const TEXT_LAYER: i32 = 4;
+
 // Field
 pub const FIELD_LEFTBTM_X: i32 = 1;
 pub const FIELD_LEFTBTM_Y: i32 = 6;
@@ -39,7 +46,7 @@ pub const HUNGRY_SPEED_BY_TICK: f32 = 2.0 / GAME_DEFAULT_FPS as f32;
 pub const MAX_HP_HUMAN: f32 = 100.0;
 pub const MAX_HP_BEAR: f32 = 50.0;
 pub const MAX_HP_FOX: f32 = 5.0;
-pub const MAX_HP_WALNUT: f32 = INFINITY;
+pub const MAX_HP_WALNUT: f32 = 1.0;
 
 pub const DECREASE_HP_HUMAN: f32 = 1.0 / GAME_DEFAULT_FPS as f32; // eat fox -> 10sec eat bear-> 30sec
 pub const DECREASE_HP_BEAR: f32 = 0.3 / GAME_DEFAULT_FPS as f32; // eat fox -> 30sec
