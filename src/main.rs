@@ -94,6 +94,10 @@ fn get_random_direction() -> Position {
         Position { x: 1, y: 0, z: 0 },
         Position { x: 0, y: -1, z: 0 },
         Position { x: 0, y: 1, z: 0 },
+        Position { x: 1, y: 1, z: 0 },
+        Position { x: -1, y: 1, z: 0 },
+        Position { x: -1, y: -1, z: 0 },
+        Position { x: 1, y: -1, z: 0 },
         Position { x: 0, y: 0, z: 0 },
     ];
     let mut rng = thread_rng();
@@ -645,6 +649,10 @@ where
         Position { x: -1, y: 0, z: 0 },
         Position { x: 0, y: 1, z: 0 },
         Position { x: 0, y: -1, z: 0 },
+        Position { x: 1, y: 1, z: 0 },
+        Position { x: -1, y: 1, z: 0 },
+        Position { x: -1, y: -1, z: 0 },
+        Position { x: 1, y: -1, z: 0 },
     ]
     .iter()
     .map(|dir| pos + dir);
@@ -658,7 +666,7 @@ where
 
     if let Some(neighbor) = get_neighbor(prey, &pos) {
         let mut rng = thread_rng();
-        if rng.gen_range(1..=10) <= 7 {
+        if rng.gen_range(1..=10) <= 4 {
             new_positions
                 .filter(|p| reachable(&field_query, p.x, p.y))
                 .min_by_key(|p| distance(p, neighbor))
