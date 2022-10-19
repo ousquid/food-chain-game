@@ -543,31 +543,24 @@ fn increase_walnut(
         return;
     }
     let mut rng = rand::thread_rng();
-    let mut new_walnuts: HashSet<Position> = HashSet::new();
-    walnut_query.iter().for_each(|position| {
-        if rng.gen_range(1..=10000) <= PROBABILITY_INCREASE_WALNUT {
-            let offset = get_increase_pos(&position, 3);
-            let new_pos = Position {
-                x: position.x + offset.x,
-                y: position.y + offset.y,
-                z: position.z,
+
+    if walnut_query.iter().count() < MAX_WALNUT_COUNT
+        && rng.gen_range(1..=10000) <= PROBABILITY_INCREASE_WALNUT
+    {
+        for _ in 0..10 {
+            let random_grid = get_random_grid();
+            let random_pos = Position {
+                x: random_grid.x,
+                y: random_grid.y,
+                z: PLAYER_LAYER,
             };
-            if reachable(&field_query, new_pos.x, new_pos.y) {
-                new_walnuts.insert(new_pos);
+
+            let is_stacked = walnut_query.iter().any(|x| *x == random_pos);
+            if !is_stacked {
+                spawn_walnut(&mut commands, random_pos, &asset_server);
+                return;
             }
         }
-    });
-    walnut_query.iter().for_each(|orig_pos| {
-        new_walnuts
-            .clone()
-            .iter()
-            .filter(|new_pos| distance(orig_pos, new_pos) <= 2)
-            .for_each(|rm| {
-                new_walnuts.remove(rm);
-            });
-    });
-    for pos in new_walnuts {
-        spawn_walnut(&mut commands, pos, &asset_server);
     }
 }
 

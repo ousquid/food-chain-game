@@ -73,6 +73,7 @@ pub const HEALING_STAMINA_WALNUT: i32 = 0;
 pub const HEALING_STAMINA_SHIP: i32 = 4;
 
 // Satiety
+pub const MAX_WALNUT_COUNT: usize = 5;
 pub const MAX_SATIETY_HUMAN: f32 = INFINITY;
 pub const MAX_SATIETY_STRONG_BEAR: f32 = 5.0;
 pub const MAX_SATIETY_WEAK_BEAR: f32 = INFINITY;
