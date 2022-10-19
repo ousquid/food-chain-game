@@ -1,7 +1,7 @@
 use crate::components::*;
 use crate::consts::*;
-
 use bevy::prelude::*;
+use std::cmp::min;
 
 use bevy::ecs::*;
 use bevy::prelude::*;
@@ -95,7 +95,7 @@ fn eat_walnut(
         .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
             walnut_query.iter().for_each(|(_, w_pos, _)| {
                 if e_pos == w_pos {
-                    e_hp.val += HEALING_HP_WALNUT;
+                    e_hp.val = f32::min(e_hp.val + HEALING_HP_WALNUT, e_hp.max);
                     e_sat.val += HEALING_SATIETY_WALNUT;
                 }
             })
@@ -127,7 +127,7 @@ fn eat_fox(
         .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
             fox_query.iter().for_each(|(_, f_pos, _)| {
                 if e_pos == f_pos {
-                    e_hp.val += HEALING_HP_FOX;
+                    e_hp.val = f32::min(e_hp.val + HEALING_HP_FOX, e_hp.max);
                     e_sat.val += HEALING_SATIETY_FOX;
                 }
             })
@@ -180,7 +180,7 @@ fn eat_weak_bear(
         .for_each(|(_, e_pos, mut e_hp, mut e_sat)| {
             weak_bear_query.iter().for_each(|(_, b_pos, b_hp)| {
                 if b_pos == e_pos {
-                    e_hp.val += HEALING_HP_BEAR;
+                    e_hp.val = f32::min(e_hp.val + HEALING_HP_BEAR, e_hp.max);
                     e_sat.val += HEALING_SATIETY_BEAR
                 }
             })

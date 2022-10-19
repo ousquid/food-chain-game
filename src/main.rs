@@ -163,6 +163,7 @@ fn main() {
         .add_system(position_transform)
         .add_system(weaken_bear)
         .add_system(die_of_old_age)
+        .add_system(restart)
         .add_system(despawn.after("eaten"))
         //.add_plugin(LogDiagnosticsPlugin::default())
         //.add_plugin(FrameTimeDiagnosticsPlugin::default())
@@ -172,10 +173,14 @@ fn main() {
 fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
+    initial_spawn(&mut commands, &asset_server)
+}
+
+fn initial_spawn(commands: &mut Commands, asset_server: &Res<AssetServer>) {
     for i in 0..FIELD_WIDTH as i32 {
         for j in 0..FIELD_HEIGHT as i32 {
             spawn_field(
-                &mut commands,
+                commands,
                 Position {
                     x: i + FIELD_LEFTBTM_X,
                     y: j + FIELD_LEFTBTM_Y,
@@ -185,7 +190,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         }
     }
     spawn_terminal(
-        &mut commands,
+        commands,
         Position {
             x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1,
             y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1,
@@ -193,7 +198,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
     );
     spawn_ship(
-        &mut commands,
+        commands,
         Position {
             x: FIELD_WIDTH as i32 + FIELD_LEFTBTM_X as i32 - 1,
             y: FIELD_HEIGHT as i32 + FIELD_LEFTBTM_Y as i32 - 1,
@@ -201,7 +206,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         },
     );
     spawn_player(
-        &mut commands,
+        commands,
         Position {
             x: 4,
             y: 6,
@@ -212,7 +217,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     for _ in 0..INITIAL_BEAR_NUM {
         let grid = get_random_grid();
         spawn_strong_bear(
-            &mut commands,
+            commands,
             Position {
                 x: grid[0],
                 y: grid[1],
@@ -225,7 +230,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     for _ in 0..INITIAL_FOX_NUM {
         let grid = get_random_grid();
         spawn_fox(
-            &mut commands,
+            commands,
             Position {
                 x: grid[0],
                 y: grid[1],
@@ -237,7 +242,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
     for _ in 0..INITIAL_WALNUT_NUM {
         let grid = get_random_grid();
         spawn_walnut(
-            &mut commands,
+            commands,
             Position {
                 x: grid[0],
                 y: grid[1],
@@ -247,7 +252,7 @@ fn setup_system(mut commands: Commands, asset_server: Res<AssetServer>) {
         );
     }
     spawn_text(
-        &mut commands,
+        commands,
         Position {
             x: 10,
             y: 10,
@@ -975,4 +980,21 @@ fn die_of_old_age(
             commands.entity(weak_bear).despawn();
         }
     });
+}
+
+fn restart(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut q: Query<Entity>,
+    key: Res<Input<KeyCode>>,
+) {
+    for k in key.get_just_pressed() {
+        if *k == KeyCode::R {
+            q.iter_mut()
+                .for_each(|entity| commands.entity(entity).despawn());
+            commands.spawn_bundle(OrthographicCameraBundle::new_2d());
+            commands.spawn_bundle(UiCameraBundle::default());
+            initial_spawn(&mut commands, &asset_server);
+        }
+    }
 }
