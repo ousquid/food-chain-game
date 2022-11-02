@@ -10,9 +10,19 @@
 ```
 
 ## build
-
+### native
 ```
 $ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 $ sudo apt-get install libasound2-dev libudev-dev
 $ cargo run
 ```
+
+### web
+```
+$ cargo build --target wasm32-unknown-unknown --release
+$ wasm-bindgen --out-dir ./out --target web --no-typescript ./target/wasm32-unknown-unknown/release/
+```
+
+## game play
+
+https://ousquid.github.io/food-chain-game/
